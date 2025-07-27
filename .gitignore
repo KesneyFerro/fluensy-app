@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Google Cloud credentials
+google-credentials.json
+flunesy-c1b57dd58062.json
+
 # vercel
 .vercel
 

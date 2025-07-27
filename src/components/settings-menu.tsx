@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { EditProfileMenu } from "./edit-profile-menu";
+import { LanguageSettings } from "./language-settings";
 
 interface SettingsMenuProps {
-  onClose: () => void;
+  readonly onClose: () => void;
 }
 
 export function SettingsMenu({ onClose }: SettingsMenuProps) {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "es">("en");
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const router = useRouter();
@@ -44,58 +44,14 @@ export function SettingsMenu({ onClose }: SettingsMenuProps) {
             <h2 className="ml-4 text-lg font-semibold">Language</h2>
           </div>
           <div className="flex-1 p-4">
-            <div className="space-y-4">
-              <button
-                className={`w-full flex items-center justify-between p-4 rounded-lg border ${
-                  selectedLanguage === "en"
-                    ? "border-primary bg-primary/5"
-                    : "border-gray-200"
-                }`}
-                onClick={() => setSelectedLanguage("en")}
-              >
-                <div className="flex items-center">
-                  <img
-                    src="https://flagcdn.com/w40/us.png"
-                    alt="US Flag"
-                    className="w-6 h-4 mr-3"
-                  />
-                  <span>English</span>
-                </div>
-                {selectedLanguage === "en" && (
-                  <div className="w-3 h-3 rounded-full bg-primary" />
-                )}
-              </button>
-              <button
-                className={`w-full flex items-center justify-between p-4 rounded-lg border ${
-                  selectedLanguage === "es"
-                    ? "border-primary bg-primary/5"
-                    : "border-gray-200"
-                }`}
-                onClick={() => setSelectedLanguage("es")}
-              >
-                <div className="flex items-center">
-                  <img
-                    src="https://flagcdn.com/w40/mx.png"
-                    alt="Mexico Flag"
-                    className="w-6 h-4 mr-3"
-                  />
-                  <span>Español</span>
-                </div>
-                {selectedLanguage === "es" && (
-                  <div className="w-3 h-3 rounded-full bg-primary" />
-                )}
-              </button>
-            </div>
+            <LanguageSettings />
           </div>
           <div className="p-4 border-t">
             <Button
               className="w-full"
-              onClick={() => {
-                // Save language preference
-                setShowLanguageMenu(false);
-              }}
+              onClick={() => setShowLanguageMenu(false)}
             >
-              Save Changes
+              Close
             </Button>
           </div>
         </div>

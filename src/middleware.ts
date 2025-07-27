@@ -42,7 +42,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - fluensy_icon.svg (custom favicon)
+     * - icon.svg (Next.js app directory icon)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|fluensy_icon.svg|icon.svg).*)",
   ],
 };
