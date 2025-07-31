@@ -82,10 +82,7 @@ export class AudioProcessor {
 
       // Set up timeouts
       this.setupTimeouts();
-
-      console.log("Audio processing started with silence detection");
     } catch (error) {
-      console.error("Error starting audio processing:", error);
       throw error;
     }
   }
@@ -94,16 +91,23 @@ export class AudioProcessor {
     this.isRecording = false;
     this.clearTimeouts();
 
-    if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
-      this.mediaRecorder.stop();
+    // Stop the media recorder and release the stream
+    if (this.mediaRecorder) {
+      if (this.mediaRecorder.state === "recording") {
+        this.mediaRecorder.stop();
+      }
+      // Release the media stream tracks
+      if (this.mediaRecorder.stream) {
+        this.mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+      }
+      this.mediaRecorder = null;
     }
 
+    // Stop silence detector
     if (this.silenceDetector) {
       this.silenceDetector.stop();
       this.silenceDetector = null;
     }
-
-    console.log("Audio processing stopped");
   }
 
   private setupMediaRecorder(): void {
@@ -161,26 +165,23 @@ export class AudioProcessor {
   private onSilenceDetected(): void {
     if (!this.isRecording || !this.mediaRecorder) return;
 
-    console.log("Silence detected, processing current segment");
-
-    // Stop current recording and process
     this.mediaRecorder.stop();
 
-    // Start new recording if we haven't hit total time limit
+    // Only start a new segment if still recording
     const elapsed = Date.now() - this.startTime;
-    if (elapsed < this.config.maxTotalDuration) {
-      setTimeout(() => this.startNewSegment(), 100);
+    if (this.isRecording && elapsed < this.config.maxTotalDuration) {
+      setTimeout(() => {
+        if (this.isRecording) this.startNewSegment();
+      }, 100);
     }
   }
 
   private onSpeechStarted(): void {
-    console.log("Speech started - user is speaking");
     this.isSpeaking = true;
     this.hasSpeechInCurrentSegment = true;
   }
 
   private onSpeechStopped(): void {
-    console.log("Speech stopped - user went silent");
     this.isSpeaking = false;
   }
 
@@ -214,24 +215,20 @@ export class AudioProcessor {
       );
 
       this.maxSegmentTimeout = setTimeout(() => {
-        this.onSilenceDetected();
+        if (this.isRecording) this.onSilenceDetected();
       }, segmentTimeout);
     } catch (error) {
-      console.error("Error starting new segment:", error);
+      // Swallow error silently
     }
   }
 
   private async processCurrentSegment(): Promise<void> {
     if (this.currentChunks.length === 0) {
-      console.log("No audio data in current segment, skipping");
       return;
     }
 
     // Only process segments that contain actual speech
     if (!this.hasSpeechInCurrentSegment) {
-      console.log(
-        "No speech detected in current segment, skipping API processing"
-      );
       this.currentChunks = []; // Clear chunks without processing
       return;
     }
@@ -240,24 +237,14 @@ export class AudioProcessor {
       const audioBlob = new Blob(this.currentChunks, { type: "audio/webm" });
       this.currentChunks = [];
 
-      console.log(
-        "Processing audio segment with speech, size:",
-        audioBlob.size
-      );
-
       // Step 1: Transcribe with AssemblyAI (using configured language)
       const transcriptionResult = await assemblyAI.transcribeAudio(audioBlob, {
         language: this.config.language,
         apiKey: this.config.assemblyAIKey,
       });
-      console.log("AssemblyAI transcription:", transcriptionResult.text);
 
-      // Skip DeepSeek validation - use AssemblyAI output directly
+      // DeepSeek Task 1 deactivated: use AssemblyAI output directly for validatedTranscription
       const validatedTranscription = transcriptionResult.text;
-      console.log(
-        "Using AssemblyAI transcription directly (DeepSeek bypassed):",
-        validatedTranscription
-      );
 
       // Step 2: Determine ground truth
       const groundTruth =
@@ -274,9 +261,8 @@ export class AudioProcessor {
           this.config.speechAceDialect,
           `segment_${this.segments.length + 1}`
         );
-        console.log("SpeechAce analysis completed for segment");
       } catch (error) {
-        console.error("SpeechAce analysis failed for segment:", error);
+        // Swallow error silently
       }
 
       // Step 4: Create segment
@@ -295,7 +281,7 @@ export class AudioProcessor {
         this.config.onSegmentProcessed(segment);
       }
     } catch (error) {
-      console.error("Error processing audio segment:", error);
+      // Swallow error silently
     }
 
     // Check if recording is complete
@@ -305,11 +291,6 @@ export class AudioProcessor {
   }
 
   private completeProcessing(): void {
-    console.log(
-      "Audio processing completed, total segments:",
-      this.segments.length
-    );
-
     if (this.config.onComplete) {
       this.config.onComplete(this.segments);
     }

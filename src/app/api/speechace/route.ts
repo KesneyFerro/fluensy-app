@@ -23,104 +23,42 @@ export async function POST(request: NextRequest) {
 
     // Decode URL-encoded API key
     const decodedApiKey = decodeURIComponent(speechAceApiKey);
-    console.log(
-      "SpeechAce API key found:",
-      speechAceApiKey ? "✓ Present" : "✗ Missing"
-    );
-    console.log(
-      "Original API key (first 20 chars):",
-      speechAceApiKey.substring(0, 20) + "..."
-    );
-    console.log(
-      "Decoded API key (first 20 chars):",
-      decodedApiKey.substring(0, 20) + "..."
-    );
-    console.log("API key decoded successfully");
 
-    // Create a new FormData object for the API request
+    // Prepare FormData for the API request (do NOT include key or dialect)
     const apiFormData = new FormData();
 
-    // Add the decoded API key from environment variables
-    apiFormData.append("key", decodedApiKey);
-    console.log("Added decoded API key to FormData");
-    console.log(
-      "Verifying key in FormData:",
-      apiFormData.get("key") ? "✓ Present" : "✗ Missing"
-    );
-
-    // Copy all other form fields to the new FormData (except key if it exists)
+    let userLanguage = "en"; // default language
     for (const [key, value] of formData.entries()) {
-      if (key !== "key") {
-        // Don't copy client-side key, use server-side one
-        apiFormData.append(key, value);
-        console.log(
-          `Added field to FormData: ${key} = ${
-            typeof value === "string" ? value : "[File]"
-          }`
-        );
-      } else {
-        console.log("Skipping client-side 'key' field");
+      if (key === "key" || key === "dialect") {
+        continue;
       }
+      if (key === "language") {
+        userLanguage = typeof value === "string" ? value : "en";
+        continue;
+      }
+      apiFormData.append(key, value);
     }
 
-    console.log(
-      "Final SpeechAce request fields:",
-      Array.from(apiFormData.keys())
-    );
+    // Set dialect based on user language
+    const dialect =
+      userLanguage === "es" ||
+      userLanguage === "spanish" ||
+      userLanguage === "es-mx"
+        ? "es-mx"
+        : "en-us";
 
-    // Final verification before API call
-    console.log("=== FINAL API REQUEST VERIFICATION ===");
-    console.log("API URL:", speechAceApiUrl);
-    console.log(
-      "FormData fields count:",
-      Array.from(apiFormData.keys()).length
-    );
-    console.log("Key field present:", apiFormData.has("key"));
-    console.log(
-      "Key field value (first 20 chars):",
-      apiFormData.get("key")?.toString().substring(0, 20) + "..."
-    );
-    console.log("=== COMPLETE PAYLOAD CONTENTS ===");
-    for (const [key, value] of apiFormData.entries()) {
-      if (key === "key") {
-        console.log(`- ${key}: ${value} (FULL API KEY)`);
-      } else if (key === "user_audio_file") {
-        console.log(
-          `- ${key}: [Audio File - ${
-            value instanceof File ? value.size : "Unknown size"
-          } bytes]`
-        );
-      } else {
-        console.log(`- ${key}: ${value}`);
-      }
-    }
-    console.log("======================================");
-
-    // Log the exact request that will be made
-    console.log("=== AXIOS REQUEST DETAILS ===");
-    console.log("URL:", speechAceApiUrl);
-    console.log("Method: POST");
-    console.log("Headers: Content-Type: multipart/form-data");
-    console.log(
-      "FormData size:",
-      Array.from(apiFormData.keys()).length,
-      "fields"
-    );
-    console.log("=============================");
+    // Build the SpeechAce API URL with query parameters
+    const url = `${speechAceApiUrl}?key=${encodeURIComponent(
+      decodedApiKey
+    )}&dialect=${encodeURIComponent(dialect)}`;
 
     // Make the request to SpeechAce API from the server
-    console.log("🚀 MAKING REQUEST TO SPEECHACE API...");
-    const response = await axios.post(speechAceApiUrl, apiFormData, {
+    const response = await axios.post(url, apiFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
       timeout: 30000, // 30 second timeout
     });
-
-    console.log("✅ SpeechAce API response received successfully");
-    console.log("Response status:", response.status);
-    console.log("Response headers:", response.headers);
-    console.log("Full response data:", JSON.stringify(response.data, null, 2));
 
     // Return the response data
     return NextResponse.json(response.data);

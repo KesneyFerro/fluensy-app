@@ -21,18 +21,39 @@ interface PasswordData {
 }
 
 export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
-  const { user, updateProfile, deleteAccount } = useAuth();
+  const { user, updateProfile, deleteAccount, userProfile } = useAuth();
   const [showFirstConfirmation, setShowFirstConfirmation] = useState(false);
   const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
   const [showPasswordMenu, setShowPasswordMenu] = useState(false);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    name: user?.displayName || "",
+    name: "",
     username: "",
-    email: user?.email || "",
+    email: "",
     dateOfBirth: "",
   });
+
+  // Load user profile data when component mounts or userProfile changes
+  useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        name: userProfile.name || user?.displayName || "",
+        username: userProfile.username || "",
+        email: userProfile.email || user?.email || "",
+        dateOfBirth: userProfile.dateOfBirth
+          ? new Date(userProfile.dateOfBirth).toISOString().split("T")[0]
+          : "",
+      });
+    } else if (user) {
+      setFormData({
+        name: user.displayName || "",
+        username: "",
+        email: user.email || "",
+        dateOfBirth: "",
+      });
+    }
+  }, [userProfile, user]);
 
   const [passwordData, setPasswordData] = useState<PasswordData>({
     oldPassword: "",

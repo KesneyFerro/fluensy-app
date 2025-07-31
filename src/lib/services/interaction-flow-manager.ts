@@ -104,6 +104,13 @@ export class InteractionFlowManager {
   }
 
   /**
+   * Expose SpeechAceService for external use (e.g., in page.tsx)
+   */
+  public getSpeechAceService(): SpeechAceService {
+    return this.speechAceService;
+  }
+
+  /**
    * 1. Initial Greeting Sequence
    * Load predefined array of 20 greetings, randomly select one,
    * send to TTS API, and prepare for display with speech bubble

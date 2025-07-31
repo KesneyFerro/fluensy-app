@@ -30,6 +30,8 @@ type AppState =
   | "phoneme_feedback";
 
 export default function HomePage() {
+  // Guard to prevent duplicate TTS calls per session
+  const transcriptionHandledRef = useRef(false);
   const { user } = useAuth();
   const { languageConfig } = useLanguage();
 
@@ -67,6 +69,10 @@ export default function HomePage() {
   // Services
   const flowManagerRef = useRef<InteractionFlowManager | null>(null);
 
+  // Track if greeting and penguin click TTS have been played
+  const [hasPlayedGreeting, setHasPlayedGreeting] = useState(false);
+  const [hasPlayedPenguinClick, setHasPlayedPenguinClick] = useState(false);
+
   // Initialize interaction flow manager
   useEffect(() => {
     flowManagerRef.current = new InteractionFlowManager();
@@ -95,22 +101,18 @@ export default function HomePage() {
    */
   const startInitialGreeting = async () => {
     if (!flowManagerRef.current) return;
-
     try {
       setAppState("initializing");
       const language = languageConfig.language === "es" ? "es" : "en";
       flowManagerRef.current.setLanguage(language);
-
       const greeting = await flowManagerRef.current.generateGreetingSequence();
       setCurrentGreeting(greeting);
       setAppState("greeting");
-
-      // Play greeting immediately without delay
-      if (greeting.audioContent) {
+      // Play greeting only if not already played in this session
+      if (greeting.audioContent && !hasPlayedGreeting) {
         await playAudio(greeting.audioContent);
+        setHasPlayedGreeting(true);
       }
-
-      // Set state to wait for user immediately after audio finishes
       setAppState("waiting_for_user");
     } catch (error) {
       console.error("Error starting initial greeting:", error);
@@ -172,35 +174,62 @@ export default function HomePage() {
   /**
    * 2. User Input Flow - Handle completed transcription with AudioProcessor results
    */
-  const handleTranscriptionComplete = async (text: string, audio?: Blob) => {
+  // Timeout for robust TTS triggering
+  const ttsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTranscriptionArgsRef = useRef<{
+    text: string;
+    audio?: Blob;
+  } | null>(null);
+
+  // Update: Accept segments array from MicrophoneButton
+  const handleTranscriptionComplete = async (
+    segments: import("@/lib/services/audio-processor").AudioSegment[]
+  ) => {
     setIsTranscribing(false);
-    // Stay in processing_input state to show "Processing..." message
-    // setAppState("processing_input") - already set from handleTranscriptionStart
-
-    setTranscriptionText(text);
-    if (audio) {
-      setAudioBlob(audio);
-    }
-
-    if (!flowManagerRef.current || !text.trim()) {
+    if (!segments || segments.length === 0) {
+      setTranscriptionText("");
+      setAudioBlob(null);
+      setAggregatedSpeechAceData([]);
       setAppState("waiting_for_user");
       return;
     }
 
+    // Merge all validated transcriptions
+    const mergedText = segments
+      .map((s) => s.validatedTranscription)
+      .filter(Boolean)
+      .join(" ");
+    setTranscriptionText(mergedText);
+
+    // Merge all audio blobs
+    const audioBlobs = segments.map((s) => s.audioBlob);
+    const combinedAudio = new Blob(audioBlobs, { type: "audio/webm" });
+    setAudioBlob(combinedAudio);
+
+    // Merge all SpeechAce results
+    const mergedSpeechAce = segments
+      .map((s) => s.speechAceResult)
+      .filter((r): r is SpeechAceResult => Boolean(r));
+    setAggregatedSpeechAceData(mergedSpeechAce);
+
+    if (!flowManagerRef.current || !mergedText.trim()) {
+      setAppState("waiting_for_user");
+      return;
+    }
+
+    setAppState("agent_responding");
     try {
-      // 3. Generate follow-up response
-      setAppState("agent_responding");
       const response = await flowManagerRef.current.generateFollowUpResponse(
-        text
+        mergedText
       );
       setCurrentResponse(response);
-
-      // Automatically play the response audio
       if (response.audioContent) {
+        console.log(
+          "[TTS DEBUG] Text passed to Google API for TTS:",
+          response.text
+        );
         await playAudio(response.audioContent);
       }
-
-      // Immediately determine next interaction without delay
       await determineNextInteraction();
     } catch (error) {
       console.error("Error processing user input:", error);
@@ -315,6 +344,9 @@ export default function HomePage() {
     setTranscriptionText(null);
     setAudioBlob(null);
     setAggregatedSpeechAceData([]);
+    setHasPlayedGreeting(false);
+    setHasPlayedPenguinClick(false);
+    transcriptionHandledRef.current = false;
     if (audioRef.current) {
       audioRef.current.pause();
     }
@@ -326,11 +358,11 @@ export default function HomePage() {
    */
   const generatePenguinClickTTS = async () => {
     try {
+      if (hasPlayedPenguinClick) return;
       const language = languageConfig.language === "es" ? "es" : "en";
       const voiceName =
         language === "es" ? "es-ES-Standard-G" : "en-US-Standard-I";
       const text = "Click on me to start our conversation!";
-
       const response = await fetch("/api/google-tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -340,11 +372,11 @@ export default function HomePage() {
           voiceName,
         }),
       });
-
       if (response.ok) {
         const { audioContent } = await response.json();
         if (audioContent) {
           playAudio(audioContent);
+          setHasPlayedPenguinClick(true);
         }
       }
     } catch (error) {

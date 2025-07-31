@@ -21,12 +21,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { updateProfile } from "firebase/auth";
-import { auth } from "@/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import { GalleryVerticalEnd } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const profileSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters"),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .regex(
+      /^\w+$/,
+      "Username can only contain letters, numbers, and underscores"
+    ),
   birthdate: z.string().refine((date) => {
     const today = new Date();
     const birthDate = new Date(date);
@@ -39,25 +46,20 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function CompleteProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const { user, updateProfile } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setUser(user);
-      } else {
-        // Redirect to login if not authenticated
-        window.location.href = "/login";
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, router]);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: user?.displayName || "",
+      username: user?.email?.split("@")[0] || "",
       birthdate: "",
     },
   });
@@ -67,16 +69,16 @@ export default function CompleteProfilePage() {
 
     setIsLoading(true);
     try {
-      await updateProfile(user, {
-        displayName: data.displayName,
+      // Update profile using the AuthContext method (which will sync with both Firebase and MongoDB)
+      await updateProfile({
+        name: data.displayName,
+        username: data.username,
+        email: user.email || "",
+        dateOfBirth: data.birthdate,
       });
 
-      // Store birthdate in user metadata or Firestore
-      // For now, we'll store it in localStorage
-      localStorage.setItem("userBirthdate", data.birthdate);
-
       // Redirect to home page
-      window.location.href = "/";
+      router.push("/");
     } catch (error: any) {
       console.error("Profile update error:", error);
     } finally {
@@ -127,6 +129,24 @@ export default function CompleteProfilePage() {
                             <Input
                               type="text"
                               placeholder="Enter your full name"
+                              {...field}
+                              disabled={isLoading}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="Choose a unique username"
                               {...field}
                               disabled={isLoading}
                             />

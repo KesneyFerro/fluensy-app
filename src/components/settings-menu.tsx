@@ -30,33 +30,7 @@ export function SettingsMenu({ onClose }: SettingsMenuProps) {
   }
 
   if (showLanguageMenu) {
-    return (
-      <div className="fixed inset-0 bg-white z-50">
-        <div className="flex flex-col h-full">
-          <div className="flex items-center p-4 border-b">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowLanguageMenu(false)}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h2 className="ml-4 text-lg font-semibold">Language</h2>
-          </div>
-          <div className="flex-1 p-4">
-            <LanguageSettings />
-          </div>
-          <div className="p-4 border-t">
-            <Button
-              className="w-full"
-              onClick={() => setShowLanguageMenu(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <LanguageSettings onClose={() => setShowLanguageMenu(false)} />;
   }
 
   return (

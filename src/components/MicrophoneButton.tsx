@@ -1,11 +1,12 @@
+import type { AudioSegment } from "../lib/services/audio-processor";
 import { Mic, Square } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
-import { AudioProcessor, AudioSegment } from "../lib/services/audio-processor";
+import { AudioProcessor } from "../lib/services/audio-processor";
 import { useLanguage } from "../contexts/LanguageContext";
 
 interface MicrophoneButtonProps {
   readonly onTranscriptionStart: () => void;
-  readonly onTranscriptionComplete: (text: string, audioBlob?: Blob) => void;
+  readonly onTranscriptionComplete: (segments: AudioSegment[]) => void;
   readonly groundTruthMode?: "transcription" | "fixed";
   readonly fixedGroundTruth?: string;
   readonly isWaitingForUser?: boolean;
@@ -59,18 +60,7 @@ export default function MicrophoneButton({
         },
         onComplete: (segments: AudioSegment[]) => {
           // All segments processing completed
-
-          // Combine all transcriptions
-          const combinedText = segments
-            .map((s) => s.validatedTranscription)
-            .filter((text) => text.trim().length > 0)
-            .join(" ");
-
-          // Combine all audio
-          const audioBlobs = segments.map((s) => s.audioBlob);
-          const combinedAudio = new Blob(audioBlobs, { type: "audio/webm" });
-
-          onTranscriptionComplete(combinedText, combinedAudio);
+          onTranscriptionComplete(segments);
 
           // Reset all states when processing is complete
           setIsRecording(false);
@@ -108,7 +98,14 @@ export default function MicrophoneButton({
 
       // Start timer to track recording time
       recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
+        setRecordingTime((prev) => {
+          if (prev + 1 >= 60) {
+            // Stop at 60 seconds
+            stopRecording();
+            return 60;
+          }
+          return prev + 1;
+        });
       }, 1000);
 
       console.log(
@@ -117,18 +114,8 @@ export default function MicrophoneButton({
     } catch (error) {
       console.error("Error starting audio processing:", error);
 
-      let errorMessage = "Error starting audio processing. Please try again.";
-
-      if (error instanceof Error) {
-        if (error.message.includes("API key")) {
-          errorMessage = `Configuration error: ${error.message}`;
-        } else if (error.message.includes("getUserMedia")) {
-          errorMessage =
-            "Microphone access denied. Please allow microphone access and try again.";
-        }
-      }
-
-      onTranscriptionComplete(errorMessage);
+      // For error, pass an empty array to indicate failure
+      onTranscriptionComplete([]);
       setIsRecording(false);
     }
   }, [
