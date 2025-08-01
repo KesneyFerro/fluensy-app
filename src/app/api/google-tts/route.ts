@@ -12,8 +12,23 @@ async function synthesizeSpeechWithGoogleCloud(
     // Dynamic import to avoid issues in browser environment
     const { TextToSpeechClient } = await import("@google-cloud/text-to-speech");
 
-    // Creates a client - this will use Application Default Credentials or service account
-    const client = new TextToSpeechClient();
+    // Create credentials object from environment variables for Vercel deployment
+    let clientOptions = {};
+
+    if (process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_CLIENT_EMAIL) {
+      // Use environment variables (recommended for Vercel)
+      clientOptions = {
+        credentials: {
+          client_email: process.env.GOOGLE_CLIENT_EMAIL,
+          private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+          project_id: process.env.GOOGLE_PROJECT_ID,
+        },
+      };
+    }
+    // If environment variables aren't set, it will fall back to GOOGLE_APPLICATION_CREDENTIALS file
+
+    // Creates a client with explicit credentials or default credentials
+    const client = new TextToSpeechClient(clientOptions);
 
     // Construct the request
     const request = {
