@@ -35,6 +35,7 @@ export function LoginForm() {
       await login(email, password);
       router.push(`/${currentLocale}`);
     } catch (error) {
+      console.error("Login error:", error);
       setError(t.invalidCredentials);
     } finally {
       setIsLoading(false);
@@ -47,6 +48,7 @@ export function LoginForm() {
       await signInWithGoogle();
       router.push(`/${currentLocale}`);
     } catch (error) {
+      console.error("Google signin error:", error);
       setError("Failed to sign in with Google");
     } finally {
       setIsGoogleLoading(false);
