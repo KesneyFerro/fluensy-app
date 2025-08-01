@@ -11,6 +11,7 @@ interface MicrophoneButtonProps {
   readonly fixedGroundTruth?: string;
   readonly isWaitingForUser?: boolean;
   readonly isExternallyProcessing?: boolean;
+  readonly maxRecordingSeconds?: number; // Optional max recording time in seconds
 }
 
 export default function MicrophoneButton({
@@ -20,6 +21,7 @@ export default function MicrophoneButton({
   fixedGroundTruth,
   isWaitingForUser = false,
   isExternallyProcessing = false,
+  maxRecordingSeconds = 60,
 }: MicrophoneButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -33,10 +35,10 @@ export default function MicrophoneButton({
     try {
       onTranscriptionStart();
 
-      // Get configuration from environment variables
-      const config = {
-        assemblyAIKey: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY || "",
-        togetherAIKey: process.env.NEXT_PUBLIC_TOGETHER_API_KEY || "",
+
+
+      // Support both transcription and fixed modes
+      const config: any = {
         speechAceKey: process.env.NEXT_PUBLIC_SPEECHACE_API_KEY || "",
         speechAceUserId: process.env.NEXT_PUBLIC_SPEECHACE_USER_ID || "",
         silenceThreshold: parseFloat(
@@ -49,12 +51,10 @@ export default function MicrophoneButton({
         maxTotalDuration: parseInt(
           process.env.NEXT_PUBLIC_MAX_TOTAL_DURATION || "60000"
         ),
-        groundTruthMode,
+        groundTruthMode: groundTruthMode,
         fixedGroundTruth,
-        // Language configuration
         language: languageConfig.assemblyAICode as "en" | "es",
         speechAceDialect: languageConfig.speechAceDialect as any,
-        deepSeekPrompt: undefined as string | undefined,
         onSegmentProcessed: (segment: AudioSegment) => {
           // Segment processed silently in background
         },
@@ -76,18 +76,17 @@ export default function MicrophoneButton({
         },
       };
 
-      // Generate language-specific DeepSeek prompt
-      config.deepSeekPrompt = getDeepSeekPrompt("placeholder");
+      // Only needed for transcription mode
+      if (groundTruthMode === "transcription") {
+        config.assemblyAIKey = process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY || "";
+        config.togetherAIKey = process.env.NEXT_PUBLIC_TOGETHER_API_KEY || "";
+      }
 
-      // Validate required API keys
-      if (!config.assemblyAIKey) {
-        throw new Error("AssemblyAI API key is required");
-      }
-      if (!config.togetherAIKey) {
-        throw new Error("Together AI API key is required");
-      }
       if (!config.speechAceKey) {
         throw new Error("SpeechAce API key is required");
+      }
+      if (groundTruthMode === "transcription" && !config.assemblyAIKey) {
+        throw new Error("AssemblyAI API key is required");
       }
 
       audioProcessorRef.current = new AudioProcessor(config);
@@ -99,10 +98,10 @@ export default function MicrophoneButton({
       // Start timer to track recording time
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime((prev) => {
-          if (prev + 1 >= 60) {
-            // Stop at 60 seconds
+          if (prev + 1 >= maxRecordingSeconds) {
+            // Stop at maxRecordingSeconds
             stopRecording();
-            return 60;
+            return maxRecordingSeconds;
           }
           return prev + 1;
         });
@@ -180,7 +179,7 @@ export default function MicrophoneButton({
     <div className="fixed bottom-28 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center">
       {/* Stopwatch display */}
       <div className="mb-2 bg-black/80 text-white px-3 py-1 rounded-full text-sm font-mono">
-        {formatTime(recordingTime)}/1:00
+        {formatTime(recordingTime)}/{formatTime(maxRecordingSeconds)}
       </div>
 
       {/* Microphone button */}

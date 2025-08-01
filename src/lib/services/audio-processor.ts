@@ -237,20 +237,23 @@ export class AudioProcessor {
       const audioBlob = new Blob(this.currentChunks, { type: "audio/webm" });
       this.currentChunks = [];
 
-      // Step 1: Transcribe with AssemblyAI (using configured language)
-      const transcriptionResult = await assemblyAI.transcribeAudio(audioBlob, {
-        language: this.config.language,
-        apiKey: this.config.assemblyAIKey,
-      });
+      let groundTruth = "";
+      let transcription = "";
+      let validatedTranscription = "";
 
-      // DeepSeek Task 1 deactivated: use AssemblyAI output directly for validatedTranscription
-      const validatedTranscription = transcriptionResult.text;
-
-      // Step 2: Determine ground truth
-      const groundTruth =
-        this.config.groundTruthMode === "fixed"
-          ? this.config.fixedGroundTruth || validatedTranscription
-          : validatedTranscription;
+      if (this.config.groundTruthMode === "fixed") {
+        // Use provided ground truth, skip AssemblyAI
+        groundTruth = this.config.fixedGroundTruth || "";
+      } else {
+        // Use AssemblyAI to transcribe audio and use as ground truth
+        const transcriptionResult = await assemblyAI.transcribeAudio(audioBlob, {
+          language: this.config.language,
+          apiKey: this.config.assemblyAIKey,
+        });
+        transcription = transcriptionResult.text;
+        validatedTranscription = transcriptionResult.text;
+        groundTruth = transcriptionResult.text;
+      }
 
       // Step 3: Analyze with SpeechAce (silently, no user feedback)
       let speechAceResult: SpeechAceResult | undefined;
@@ -268,7 +271,7 @@ export class AudioProcessor {
       // Step 4: Create segment
       const segment: AudioSegment = {
         audioBlob,
-        transcription: transcriptionResult.text,
+        transcription,
         validatedTranscription,
         speechAceResult,
         timestamp: this.segmentStartTime,
