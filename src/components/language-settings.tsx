@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "@/lib/translations";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter, usePathname } from "next/navigation";
 import { LocalUserProfileManager } from "@/lib/services/local-profile-manager";
 
 // Flag SVG components
@@ -29,6 +31,14 @@ const MXFlag = () => (
   </svg>
 );
 
+const FRFlag = () => (
+  <svg width="24" height="16" viewBox="0 0 24 16" className="rounded">
+    <rect width="8" height="16" fill="#002654" />
+    <rect x="8" width="8" height="16" fill="#FFFFFF" />
+    <rect x="16" width="8" height="16" fill="#ED2939" />
+  </svg>
+);
+
 const LANGUAGE_OPTIONS = [
   {
     code: "en-US",
@@ -42,6 +52,12 @@ const LANGUAGE_OPTIONS = [
     flag: <MXFlag />,
     dialect: "Mexican Spanish",
   },
+  {
+    code: "fr-FR",
+    displayName: "Français (France)",
+    flag: <FRFlag />,
+    dialect: "French",
+  },
 ];
 
 export function LanguageSettings({
@@ -50,8 +66,13 @@ export function LanguageSettings({
   readonly onClose: () => void;
 }) {
   const { currentLanguage, setLanguage } = useLanguage();
+  const t = useTranslations(currentLanguage);
   const { user, updateProfile, userProfile } = useAuth();
-  const [selectedLanguage, setSelectedLanguage] = useState(currentLanguage);
+  const router = useRouter();
+  const pathname = usePathname();
+  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "es" | "fr">(
+    currentLanguage
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   // Initialize local profile manager for fallback data
@@ -71,7 +92,7 @@ export function LanguageSettings({
   useEffect(() => {
     // Set the current language from profile data or context
     if (profileData?.language) {
-      setSelectedLanguage(profileData.language as "en" | "es");
+      setSelectedLanguage(profileData.language as "en" | "es" | "fr");
     } else {
       setSelectedLanguage(currentLanguage);
     }
@@ -79,7 +100,14 @@ export function LanguageSettings({
 
   const handleLanguageSelect = (languageCode: string) => {
     // Convert detailed language codes to simple codes for LanguageContext
-    const simpleCode: "en" | "es" = languageCode.startsWith("en") ? "en" : "es";
+    let simpleCode: "en" | "es" | "fr";
+    if (languageCode.startsWith("en")) {
+      simpleCode = "en";
+    } else if (languageCode.startsWith("es")) {
+      simpleCode = "es";
+    } else {
+      simpleCode = "fr";
+    }
     setSelectedLanguage(simpleCode);
   };
 
@@ -105,6 +133,11 @@ export function LanguageSettings({
         });
       }
 
+      // Navigate to the new locale URL
+      const currentPath = (pathname || "").replace(/^\/[a-z]{2}/, ""); // Remove current locale
+      const newUrl = `/${selectedLanguage}${currentPath}`;
+      router.push(newUrl);
+
       onClose();
     } catch (error) {
       console.error("Error updating language:", error);
@@ -116,10 +149,10 @@ export function LanguageSettings({
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50">
+    <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50">
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-white">
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -129,7 +162,7 @@ export function LanguageSettings({
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h2 className="text-lg font-semibold">Language Settings</h2>
+            <h2 className="text-lg font-semibold">{t.languageSettings}</h2>
           </div>
         </div>
 
@@ -137,11 +170,8 @@ export function LanguageSettings({
         <div className="flex-1 overflow-y-auto p-4">
           <div className="max-w-md mx-auto space-y-6">
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Choose Your Language</h3>
-              <p className="text-sm text-muted-foreground">
-                This affects speech recognition, transcription, and
-                pronunciation analysis
-              </p>
+              <h3 className="text-xl font-semibold">{t.selectLanguage}</h3>
+              <p className="text-sm text-muted-foreground">{t.languageNote}</p>
             </div>
 
             <div className="space-y-3">
@@ -155,7 +185,9 @@ export function LanguageSettings({
                       (selectedLanguage === "en" &&
                         language.code.startsWith("en")) ||
                       (selectedLanguage === "es" &&
-                        language.code.startsWith("es"))
+                        language.code.startsWith("es")) ||
+                      (selectedLanguage === "fr" &&
+                        language.code.startsWith("fr"))
                         ? "border-primary bg-primary/5"
                         : "border-gray-200 hover:border-gray-300"
                     }
@@ -175,7 +207,9 @@ export function LanguageSettings({
                   {((selectedLanguage === "en" &&
                     language.code.startsWith("en")) ||
                     (selectedLanguage === "es" &&
-                      language.code.startsWith("es"))) && (
+                      language.code.startsWith("es")) ||
+                    (selectedLanguage === "fr" &&
+                      language.code.startsWith("fr"))) && (
                     <div className="text-primary">
                       <Check className="h-5 w-5" />
                     </div>
@@ -186,23 +220,21 @@ export function LanguageSettings({
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="text-sm text-blue-800">
-                <strong>Note:</strong> Language changes will apply to new
-                recordings and exercises. Your learning progress will be
-                preserved.
+                <strong>Note:</strong> {t.languageChangeNote}
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-white">
+        <div className="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="max-w-md mx-auto">
             <Button
               onClick={handleSave}
               disabled={isLoading}
               className="w-full"
             >
-              {isLoading ? "Saving..." : "Apply Changes"}
+              {isLoading ? t.saving : t.applyChanges}
             </Button>
           </div>
         </div>

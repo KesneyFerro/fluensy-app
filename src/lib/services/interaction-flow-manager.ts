@@ -1,7 +1,9 @@
-import { DeepSeekService } from "./deepseek";
+import { GeminiService } from "./gemini";
 import GoogleTTSService from "./google-tts";
 import { SpeechAceService, SpeechAceResult } from "./speechace";
 import { GradingSystem } from "./grading-system";
+
+type SupportedLanguage = "en" | "es" | "fr";
 
 export interface GreetingSequence {
   text: string;
@@ -35,11 +37,11 @@ export interface InteractionDecision {
 }
 
 export class InteractionFlowManager {
-  private deepSeekService: DeepSeekService;
-  private ttsService: GoogleTTSService;
-  private speechAceService: SpeechAceService;
-  private gradingSystem: GradingSystem;
-  private language: "en" | "es" = "en";
+  private readonly geminiService: GeminiService;
+  private readonly ttsService: GoogleTTSService;
+  private readonly speechAceService: SpeechAceService;
+  private readonly gradingSystem: GradingSystem;
+  private language: SupportedLanguage = "en";
 
   // 20 predefined greetings for each language
   private readonly greetings = {
@@ -87,10 +89,32 @@ export class InteractionFlowManager {
       "¡Hola! ¿Algo pequeño o tonto te hizo reír hoy?",
       "¡Oye! ¿Es hoy uno de esos días que guardarías en una botella si pudieras?",
     ],
+    fr: [
+      "Salut ! Comment se passe ta journée jusqu'à présent ?",
+      "Bonjour ! Qu'est-ce que tu as fait aujourd'hui ?",
+      "Content de te voir ! Tu te sens bien aujourd'hui ?",
+      "Salut ! Il s'est passé quelque chose d'amusant aujourd'hui ?",
+      "Salut ! Tu as eu une journée tranquille ou chargée ?",
+      "Hey ! Comment tu te sens en ce moment ?",
+      "Bonjour ! Tu as quelque chose d'excitant qui se passe aujourd'hui ?",
+      "Bonjour ! Comment ta matinée (ou ton après-midi) se passe-t-elle ?",
+      "Salut ! Tu as commencé la journée avec quelque chose de délicieux ?",
+      "Salut ! C'est quoi l'ambiance aujourd'hui — détendu ou à fond ?",
+      "Hey ! Tu te sens plus endormi ou énergique aujourd'hui ?",
+      "Bonjour ! Quelque chose t'a fait sourire jusqu'à présent aujourd'hui ?",
+      "Salut ! C'est quoi l'humeur aujourd'hui — cosy, créatif, curieux ?",
+      "Hey ! Tu es sorti dehors à un moment aujourd'hui ?",
+      "Salut ! Quelle est une belle chose qui s'est passée aujourd'hui ?",
+      "Hey ! Tu as plus envie de parler ou juste de te détendre ?",
+      "Bonjour ! Ça a été une journée calme ou folle ?",
+      "Salut ! Tu es d'humeur à grignoter ou tu fais juste tranquille ?",
+      "Bonjour ! Quelque chose de petit ou de stupide t'a fait rire aujourd'hui ?",
+      "Hey ! C'est aujourd'hui un de ces jours que tu mettrais en bouteille si tu pouvais ?",
+    ],
   };
 
   constructor() {
-    this.deepSeekService = new DeepSeekService();
+    this.geminiService = new GeminiService();
     this.ttsService = new GoogleTTSService();
     this.speechAceService = new SpeechAceService({
       apiKey: process.env.NEXT_PUBLIC_SPEECHACE_API_KEY || "",
@@ -99,7 +123,7 @@ export class InteractionFlowManager {
     this.gradingSystem = new GradingSystem();
   }
 
-  setLanguage(language: "en" | "es") {
+  setLanguage(language: SupportedLanguage) {
     this.language = language;
   }
 
@@ -124,14 +148,23 @@ export class InteractionFlowManager {
     // Generate TTS audio for the greeting
     let audioContent: string | undefined;
     try {
+      let languageCode: string;
+      if (this.language === "es") {
+        languageCode = "es-ES";
+      } else if (this.language === "fr") {
+        languageCode = "fr-FR";
+      } else {
+        languageCode = "en-US";
+      }
+
       const voiceConfig = GoogleTTSService.getVoiceForMood(
         "friendly",
-        this.language === "es" ? "es-ES" : "en-US"
+        languageCode
       );
 
       audioContent = await this.ttsService.synthesizeSpeech({
         text: selectedGreeting,
-        languageCode: this.language === "es" ? "es-ES" : "en-US",
+        languageCode: languageCode,
         voiceName: voiceConfig.voiceName,
         speakingRate: voiceConfig.speakingRate,
         pitch: voiceConfig.pitch,
@@ -169,7 +202,7 @@ export class InteractionFlowManager {
 
   /**
    * 3. Follow-up Agent Response
-   * Send ONLY the full transcription to DeepSeek for response generation,
+   * Send ONLY the full transcription to Gemini for response generation,
    * then convert to TTS audio
    */
   async generateFollowUpResponse(
@@ -181,34 +214,39 @@ export class InteractionFlowManager {
     );
 
     try {
-      // Send only the full transcription to DeepSeek for follow-up response
-      console.log("📤 Calling DeepSeek for conversational response...");
+      // Send only the full transcription to Gemini for follow-up response
+      console.log("📤 Calling Gemini for conversational response...");
       const { response, mood } =
-        await this.deepSeekService.generateConversationalResponse({
+        await this.geminiService.generateConversationalResponse({
           msg1: "", // Previous message can be empty for initial context
           msg2: fullTranscription,
           hasQuestion: this.containsQuestion(fullTranscription),
           language: this.language,
         });
 
-      console.log("📥 DeepSeek response received:", { response, mood });
-
-      // Additional safety: Clean any thinking tags that might have slipped through
-      const cleanResponse = DeepSeekService.cleanThinkingTags(response);
-      const cleanMood = DeepSeekService.cleanThinkingTags(mood);
+      console.log("📥 Gemini response received:", { response, mood });
 
       // Generate TTS audio for the response
       let audioContent: string | undefined;
       try {
         console.log("🔊 Generating TTS for response...");
+        let languageCode: string;
+        if (this.language === "es") {
+          languageCode = "es-ES";
+        } else if (this.language === "fr") {
+          languageCode = "fr-FR";
+        } else {
+          languageCode = "en-US";
+        }
+
         const voiceConfig = GoogleTTSService.getVoiceForMood(
-          cleanMood,
-          this.language === "es" ? "es-ES" : "en-US"
+          mood,
+          languageCode
         );
 
         audioContent = await this.ttsService.synthesizeSpeech({
-          text: cleanResponse,
-          languageCode: this.language === "es" ? "es-ES" : "en-US",
+          text: response,
+          languageCode,
           voiceName: voiceConfig.voiceName,
           speakingRate: voiceConfig.speakingRate,
           pitch: voiceConfig.pitch,
@@ -220,18 +258,23 @@ export class InteractionFlowManager {
       }
 
       return {
-        text: cleanResponse,
+        text: response,
         audioContent,
-        mood: cleanMood,
+        mood,
       };
     } catch (error) {
       console.error("Error generating follow-up response:", error);
 
       // Fallback response
-      const fallbackText =
-        this.language === "es"
-          ? "Lo siento, hubo un problema. ¿Puedes intentar de nuevo?"
-          : "Sorry, there was an issue. Can you try again?";
+      let fallbackText: string;
+      if (this.language === "es") {
+        fallbackText =
+          "Lo siento, hubo un problema. ¿Puedes intentar de nuevo?";
+      } else if (this.language === "fr") {
+        fallbackText = "Désolé, il y a eu un problème. Pouvez-vous réessayer ?";
+      } else {
+        fallbackText = "Sorry, there was an issue. Can you try again?";
+      }
 
       return {
         text: fallbackText,
@@ -334,8 +377,10 @@ export class InteractionFlowManager {
       return undefined;
     }
 
-    const worstPhone = phoneScoreList.reduce((worst, current) =>
-      current.quality_score < worst.quality_score ? current : worst
+    const worstPhone = phoneScoreList.reduce(
+      (worst, current) =>
+        current.quality_score < worst.quality_score ? current : worst,
+      phoneScoreList[0] // Initial value
     );
 
     return worstPhone.phone;
@@ -357,14 +402,23 @@ export class InteractionFlowManager {
     // Generate TTS for the practice phrase
     let audioContent: string | undefined;
     try {
+      let languageCode: string;
+      if (this.language === "es") {
+        languageCode = "es-ES";
+      } else if (this.language === "fr") {
+        languageCode = "fr-FR";
+      } else {
+        languageCode = "en-US";
+      }
+
       const voiceConfig = GoogleTTSService.getVoiceForMood(
         "encouraging",
-        this.language === "es" ? "es-ES" : "en-US"
+        languageCode
       );
 
       audioContent = await this.ttsService.synthesizeSpeech({
         text: practicePhrase,
-        languageCode: this.language === "es" ? "es-ES" : "en-US",
+        languageCode: languageCode,
         voiceName: voiceConfig.voiceName,
         speakingRate: 0.8, // Slower for practice
         pitch: voiceConfig.pitch,
@@ -385,7 +439,10 @@ export class InteractionFlowManager {
   /**
    * Generate a practice phrase containing the target word
    */
-  private generatePracticePhrase(word: string, language: "en" | "es"): string {
+  private generatePracticePhrase(
+    word: string,
+    language: SupportedLanguage
+  ): string {
     const templates = {
       en: [
         `Let's practice the word "${word}". Say it clearly: ${word}.`,
@@ -400,6 +457,13 @@ export class InteractionFlowManager {
         `Trabajemos en "${word}". Repite después de mí: ${word}.`,
         `¡Hora de practicar! Di la palabra "${word}" lenta y claramente.`,
         `Mejoremos tu pronunciación de "${word}". Di: ${word}.`,
+      ],
+      fr: [
+        `Pratiquons le mot "${word}". Dis-le clairement : ${word}.`,
+        `Concentre-toi sur la prononciation de "${word}" correctement. Essaie de dire : ${word}.`,
+        `Travaillons sur "${word}". Répète après moi : ${word}.`,
+        `C'est l'heure de pratiquer ! Dis le mot "${word}" lentement et clairement.`,
+        `Améliorons ta prononciation de "${word}". Dis : ${word}.`,
       ],
     };
 
@@ -434,13 +498,26 @@ export class InteractionFlowManager {
         "cuáles",
         "quiénes",
       ],
+      fr: [
+        "que",
+        "qu'est-ce que",
+        "où",
+        "quand",
+        "pourquoi",
+        "comment",
+        "qui",
+        "quel",
+        "quelle",
+        "quels",
+        "quelles",
+      ],
     };
 
     const words = questionWords[this.language];
     const lowerText = text.toLowerCase();
 
     return (
-      words.some((word) => lowerText.includes(word)) ||
+      words.some((word: string) => lowerText.includes(word)) ||
       text.includes("?") ||
       lowerText.includes("?")
     );
@@ -460,10 +537,18 @@ export class InteractionFlowManager {
   }> {
     try {
       // Send user's audio to SpeechAce for targeted feedback
+      // Note: SpeechAce only supports English and Spanish, so we fall back to English for French
+      let speechAceLanguage: "en-us" | "es-es";
+      if (this.language === "es") {
+        speechAceLanguage = "es-es";
+      } else {
+        speechAceLanguage = "en-us"; // Default for both English and French (fallback)
+      }
+
       const speechAceResult = await this.speechAceService.scoreText(
         userAudio,
         originalPhrase,
-        this.language === "es" ? "es-es" : "en-us"
+        speechAceLanguage
       );
 
       // Generate feedback using grading system
@@ -481,31 +566,32 @@ export class InteractionFlowManager {
             })) || [],
         },
         originalPhrase,
-        this.language
+        this.language // Now supports "en" | "es" | "fr"
       );
 
       // Determine if training should continue based on score improvement
       const shouldContinue = gradingResult.overallScore < 70; // Continue if score is below 70%
 
-      // Clean any thinking tags from feedback
-      const cleanFeedback = DeepSeekService.cleanThinkingTags(
-        gradingResult.feedback
-      );
-      const cleanTip = gradingResult.improvementTip
-        ? DeepSeekService.cleanThinkingTags(gradingResult.improvementTip)
-        : "";
-
       // Generate TTS for feedback
       let audioContent: string | undefined;
       try {
+        let languageCode: string;
+        if (this.language === "es") {
+          languageCode = "es-ES";
+        } else if (this.language === "fr") {
+          languageCode = "fr-FR";
+        } else {
+          languageCode = "en-US";
+        }
+
         const voiceConfig = GoogleTTSService.getVoiceForMood(
           "encouraging",
-          this.language === "es" ? "es-ES" : "en-US"
+          languageCode
         );
 
         audioContent = await this.ttsService.synthesizeSpeech({
-          text: cleanFeedback,
-          languageCode: this.language === "es" ? "es-ES" : "en-US",
+          text: gradingResult.feedback,
+          languageCode,
           voiceName: voiceConfig.voiceName,
           speakingRate: voiceConfig.speakingRate,
           pitch: voiceConfig.pitch,
@@ -515,18 +601,26 @@ export class InteractionFlowManager {
         audioContent = undefined;
       }
 
+      const fullFeedback = gradingResult.improvementTip
+        ? `${gradingResult.feedback} ${gradingResult.improvementTip}`
+        : gradingResult.feedback;
+
       return {
-        feedback: cleanFeedback + (cleanTip ? ` ${cleanTip}` : ""),
+        feedback: fullFeedback,
         audioContent,
         shouldContinue,
       };
     } catch (error) {
       console.error("Error processing phoneme training feedback:", error);
 
-      const fallbackFeedback =
-        this.language === "es"
-          ? "Buen intento. Sigamos practicando."
-          : "Good try. Let's keep practicing.";
+      let fallbackFeedback: string;
+      if (this.language === "es") {
+        fallbackFeedback = "Buen intento. Sigamos practicando.";
+      } else if (this.language === "fr") {
+        fallbackFeedback = "Bon essai. Continuons à pratiquer.";
+      } else {
+        fallbackFeedback = "Good try. Let's keep practicing.";
+      }
 
       return {
         feedback: fallbackFeedback,

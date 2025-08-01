@@ -2,14 +2,26 @@
 
 import { LoginForm } from "@/components/login-form";
 import { RouteProtection } from "@/components/route-protection";
+import { usePathname } from "next/navigation";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function LoginPage() {
+  const pathname = usePathname();
+  const { currentLanguage } = useLanguage();
+
+  // Extract current locale from pathname
+  const pathParts = pathname?.split("/") || [];
+  const currentLocale = pathParts[1] || currentLanguage;
+
   return (
-    <RouteProtection requireAuth={false} redirectTo="/">
+    <RouteProtection requireAuth={false} redirectTo={`/${currentLocale}`}>
       <div className="grid min-h-svh lg:grid-cols-2">
         <div className="flex flex-col gap-4 p-6 md:p-10">
           <div className="flex justify-center gap-2 md:justify-start">
-            <a href="/" className="flex items-center gap-2 font-medium">
+            <a
+              href={`/${currentLocale}`}
+              className="flex items-center gap-2 font-medium"
+            >
               <img
                 src="/fluensy_icon.svg"
                 alt="Fluensy Logo"

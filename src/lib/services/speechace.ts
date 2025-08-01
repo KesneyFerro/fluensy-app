@@ -49,6 +49,7 @@ export const SPEECHACE_DIALECTS = {
   EN_US: "en-us",
   EN_GB: "en-gb",
   ES_ES: "es-es",
+  FR_FR: "fr-fr",
 } as const;
 
 export type SpeechAceDialect =

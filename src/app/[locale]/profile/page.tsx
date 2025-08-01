@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { SettingsMenu } from "@/components/settings-menu";
 import { LocalUserProfileManager } from "@/lib/services/local-profile-manager";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "@/lib/translations";
 
 const calculateAge = (dateOfBirth: string): number => {
   const today = new Date();
@@ -29,10 +31,11 @@ const calculateAge = (dateOfBirth: string): number => {
 };
 
 export default function ProfilePage() {
-  const { user, userProfile, loading, refreshUserProfile, updateLocalProfile } =
-    useAuth();
+  const { user, userProfile, loading, refreshUserProfile } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
   const router = useRouter();
+  const { currentLanguage } = useLanguage();
+  const t = useTranslations(currentLanguage);
 
   // Initialize local profile manager for fallback data
   const localProfileManager = useMemo(() => new LocalUserProfileManager(), []);
@@ -98,13 +101,12 @@ export default function ProfilePage() {
   // Show loading state while fetching user data
   if (loading && !currentProfileData) {
     return (
-      <div
-        className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 flex items-center justify-center"
-        style={{ backgroundColor: "#e0eafc" }}
-      >
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your profile...</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            {t.loadingYourProfile}
+          </p>
         </div>
       </div>
     );
@@ -115,18 +117,14 @@ export default function ProfilePage() {
 
   return (
     <>
-      <div
-        className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100"
-        style={{ backgroundColor: "#e0eafc" }}
-      >
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         {/* Show local data indicator if applicable */}
         {isUsingLocalData && (
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mx-4 mt-2 rounded">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 p-3 mx-4 mt-2 rounded">
             <div className="flex">
               <div className="ml-3">
-                <p className="text-sm text-blue-700">
-                  📱 Showing locally saved data. Will sync when connection is
-                  restored.
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  {t.showingLocallyDataSync}
                 </p>
               </div>
             </div>
@@ -138,18 +136,18 @@ export default function ProfilePage() {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full bg-white/90 hover:bg-white shadow-sm border"
+            className="rounded-full bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 shadow-sm border dark:border-gray-700"
             onClick={() => setShowSettings(true)}
           >
-            <Settings className="h-5 w-5 text-gray-700" />
+            <Settings className="h-5 w-5 text-gray-700 dark:text-gray-300" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full bg-white/90 hover:bg-white shadow-sm border"
+            className="rounded-full bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 shadow-sm border dark:border-gray-700"
             onClick={() => router.push("/")}
           >
-            <X className="h-5 w-5 text-gray-700" />
+            <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
           </Button>
         </div>
 
@@ -157,24 +155,26 @@ export default function ProfilePage() {
         <div className="text-center px-6 mb-6">
           <div className="space-y-3">
             <div className="relative inline-block">
-              <Avatar className="w-32 h-32 mx-auto border-4 border-white shadow-lg">
+              <Avatar className="w-32 h-32 mx-auto border-4 border-white dark:border-gray-700 shadow-lg">
                 <AvatarImage
                   src={userInfo.profileImage || "/placeholder.svg"}
                   alt="Profile"
                 />
-                <AvatarFallback className="text-2xl bg-gradient-to-br from-gray-200 to-blue-200">
+                <AvatarFallback className="text-2xl bg-gradient-to-br from-gray-200 to-blue-200 dark:from-gray-700 dark:to-gray-600 dark:text-gray-200">
                   <User className="w-12 h-12" />
                 </AvatarFallback>
               </Avatar>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {userInfo.name}
               </h1>
-              <p className="text-gray-600 text-base">@{userInfo.username}</p>
+              <p className="text-gray-600 dark:text-gray-300 text-base">
+                @{userInfo.username}
+              </p>
               {userInfo.age && (
-                <p className="text-gray-500 text-sm">
-                  {userInfo.age} years old
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  {userInfo.age} {t.yearsOld}
                 </p>
               )}
             </div>
@@ -183,72 +183,70 @@ export default function ProfilePage() {
 
         {/* Content Card */}
         <div className="px-6">
-          <Card className="bg-white/95 backdrop-blur-sm border border-gray-200/50 shadow-xl rounded-3xl">
+          <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-3xl">
             <CardContent className="p-6 space-y-6">
               <div>
-                <p className="text-gray-600 text-center leading-relaxed">
-                  Great progress with your speech sounds! Keep practicing those
-                  tricky phonemes - you're doing amazing!
+                <p className="text-gray-600 dark:text-gray-300 text-center leading-relaxed">
+                  {t.greatProgressSpeech}
                 </p>
               </div>
 
-              <hr className="border-gray-300" />
+              <hr className="border-gray-300 dark:border-gray-600" />
 
               {/* Level Progress */}
               <div className="flex items-center gap-4">
-                <div className="bg-sky-100 rounded-full px-3 py-1">
-                  <span className="text-sky-600 font-bold text-sm">
+                <div className="bg-sky-100 dark:bg-sky-900 rounded-full px-3 py-1">
+                  <span className="text-sky-600 dark:text-sky-300 font-bold text-sm">
                     Lv. {userInfo.level}
                   </span>
                 </div>
                 <div className="flex-1">
                   <Progress
                     value={userInfo.progress}
-                    className="h-3 bg-gray-200 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-purple-600"
+                    className="h-3 bg-gray-200 dark:bg-gray-700 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-purple-600"
                   />
                 </div>
-                <span className="text-purple-600 font-bold text-lg">
+                <span className="text-purple-600 dark:text-purple-400 font-bold text-lg">
                   {userInfo.progress}%
                 </span>
               </div>
 
               {/* Speech Progress Section */}
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+              <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
                 <div className="relative flex-shrink-0">
-                  <div className="w-16 h-16 rounded-full border-4 border-purple-600 flex items-center justify-center bg-white">
-                    <span className="text-purple-600 font-bold text-lg">
+                  <div className="w-16 h-16 rounded-full border-4 border-purple-600 dark:border-purple-400 flex items-center justify-center bg-white dark:bg-gray-800">
+                    <span className="text-purple-600 dark:text-purple-400 font-bold text-lg">
                       76%
                     </span>
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 mb-1">
-                    Speech Sound Mastery!
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-1">
+                    {t.speechSoundMastery}
                   </h3>
-                  <p className="text-gray-500 text-sm">
-                    You've mastered 76% of your target sounds. See your phoneme
-                    progress report...
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    {t.masterPercentTarget}
                   </p>
                 </div>
               </div>
 
-              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-2xl py-4 text-lg font-medium">
-                View Speech Report
+              <Button className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-2xl py-4 text-lg font-medium">
+                {t.viewSpeechReport}
               </Button>
 
               {/* Stats Grid */}
               <div className="space-y-3">
-                <Card className="bg-gray-50 border-0 rounded-2xl">
+                <Card className="bg-gray-50 dark:bg-gray-700/50 border-0 rounded-2xl">
                   <CardContent className="p-4 flex items-center gap-3">
-                    <div className="bg-purple-100 rounded-lg p-2 flex-shrink-0">
-                      <div className="w-6 h-6 bg-purple-600 rounded flex-shrink-0"></div>
+                    <div className="bg-purple-100 dark:bg-purple-900/50 rounded-lg p-2 flex-shrink-0">
+                      <div className="w-6 h-6 bg-purple-600 dark:bg-purple-400 rounded flex-shrink-0"></div>
                     </div>
                     <div>
-                      <div className="font-bold text-xl text-gray-900">
+                      <div className="font-bold text-xl text-gray-900 dark:text-white">
                         12/15
                       </div>
-                      <div className="text-gray-500 text-sm">
-                        Speech exercises completed
+                      <div className="text-gray-500 dark:text-gray-400 text-sm">
+                        {t.speechExercisesCompleted}
                       </div>
                     </div>
                   </CardContent>
@@ -263,7 +261,7 @@ export default function ProfilePage() {
                       <div>
                         <div className="font-bold text-xl text-gray-900">8</div>
                         <div className="text-gray-500 text-sm">
-                          Phonemes mastered
+                          {t.phonemesMastered}
                         </div>
                       </div>
                     </CardContent>
@@ -279,7 +277,7 @@ export default function ProfilePage() {
                           45m
                         </div>
                         <div className="text-gray-500 text-sm">
-                          Therapy time today
+                          {t.therapyTimeToday}
                         </div>
                       </div>
                     </CardContent>
@@ -293,7 +291,7 @@ export default function ProfilePage() {
         {/* Achievements Section */}
         <div className="px-6 py-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 text-left">
-            Speech Milestones
+            {t.speechMilestones}
           </h2>
           <div className="h-1 bg-black rounded-full w-32"></div>
         </div>

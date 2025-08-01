@@ -9,9 +9,15 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hideNavigation = ["/login", "/signup", "/complete-profile"].includes(
-    pathname
-  );
+
+  // Check if current path should hide navigation (locale-aware)
+  const pathsToHide = ["/login", "/signup", "/complete-profile"];
+  const hideNavigation = pathsToHide.some((path) => {
+    // Remove locale prefix to check the actual path
+    const pathWithoutLocale =
+      pathname?.replace(/^\/[a-z]{2}(?=\/|$)/, "") || "";
+    return pathWithoutLocale === path || pathname === path;
+  });
 
   return (
     <>

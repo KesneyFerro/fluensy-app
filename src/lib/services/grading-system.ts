@@ -1,4 +1,6 @@
-import { DeepSeekService } from "./deepseek";
+import { GeminiService } from "./gemini";
+
+type SupportedLanguage = "en" | "es" | "fr";
 
 interface SpeechAceWord {
   word: string;
@@ -23,10 +25,10 @@ interface GradingResult {
 }
 
 export class GradingSystem {
-  private deepSeekService: DeepSeekService;
+  private readonly geminiService: GeminiService;
 
   constructor() {
-    this.deepSeekService = new DeepSeekService();
+    this.geminiService = new GeminiService();
   }
 
   /**
@@ -35,7 +37,7 @@ export class GradingSystem {
   async processGrading(
     speechAceResponse: SpeechAceResponse,
     originalText: string,
-    language: "en" | "es" = "en"
+    language: "en" | "es" | "fr" = "en"
   ): Promise<GradingResult> {
     try {
       // Find the lowest scored word
@@ -44,21 +46,29 @@ export class GradingSystem {
       );
 
       if (!lowestScoredWord) {
+        let successFeedback: string;
+        let successTip: string;
+
+        if (language === "es") {
+          successFeedback = "¡Gran trabajo con tu pronunciación!";
+          successTip = "Sigue practicando para mantener este nivel.";
+        } else if (language === "fr") {
+          successFeedback = "Excellent travail avec votre prononciation !";
+          successTip = "Continuez à pratiquer pour maintenir ce niveau.";
+        } else {
+          successFeedback = "Great job with your pronunciation!";
+          successTip = "Keep practicing to maintain this level.";
+        }
+
         return {
           overallScore: speechAceResponse.overall_score,
           lowestScoredWord: null,
-          feedback:
-            language === "es"
-              ? "Gran trabajo con tu pronunciación!"
-              : "Great job with your pronunciation!",
-          improvementTip:
-            language === "es"
-              ? "Sigue practicando para mantener este nivel."
-              : "Keep practicing to maintain this level.",
+          feedback: successFeedback,
+          improvementTip: successTip,
         };
       }
 
-      // Generate improvement feedback using DeepSeek
+      // Generate improvement feedback using Gemini
       const feedback = await this.generateImprovementFeedback(
         lowestScoredWord,
         originalText,
@@ -74,17 +84,26 @@ export class GradingSystem {
     } catch (error) {
       console.error("Error processing grading:", error);
 
+      let errorFeedback: string;
+      let errorTip: string;
+
+      if (language === "es") {
+        errorFeedback = "Hubo un problema al analizar tu pronunciación.";
+        errorTip = "Intenta hablar más claramente y repite.";
+      } else if (language === "fr") {
+        errorFeedback =
+          "Il y a eu un problème lors de l'analyse de votre prononciation.";
+        errorTip = "Essayez de parler plus clairement et répétez.";
+      } else {
+        errorFeedback = "There was an issue analyzing your pronunciation.";
+        errorTip = "Try speaking more clearly and repeat.";
+      }
+
       return {
         overallScore: speechAceResponse.overall_score,
         lowestScoredWord: null,
-        feedback:
-          language === "es"
-            ? "Hubo un problema al analizar tu pronunciación."
-            : "There was an issue analyzing your pronunciation.",
-        improvementTip:
-          language === "es"
-            ? "Intenta hablar más claramente y repite."
-            : "Try speaking more clearly and repeat.",
+        feedback: errorFeedback,
+        improvementTip: errorTip,
       };
     }
   }
@@ -97,16 +116,16 @@ export class GradingSystem {
 
     return words.reduce((lowest, current) => {
       return current.accuracy_score < lowest.accuracy_score ? current : lowest;
-    });
+    }, words[0]);
   }
 
   /**
-   * Generate improvement feedback for a specific word using DeepSeek
+   * Generate improvement feedback for a specific word using Gemini
    */
   private async generateImprovementFeedback(
     word: SpeechAceWord,
     originalText: string,
-    language: "en" | "es"
+    language: SupportedLanguage
   ): Promise<{ mainFeedback: string; improvementTip: string }> {
     const userMessage = `Word: "${word.word}"
 Accuracy Score: ${word.accuracy_score}
@@ -120,23 +139,23 @@ Phoneme Issues: ${
     }`;
 
     try {
-      const response = await this.deepSeekService.correctTranscription({
+      const response = await this.geminiService.correctTranscription({
         transcription: userMessage,
         language,
       });
 
       // Parse the response to extract feedback and tip
-      const lines = response.split("\n").filter((line) => line.trim());
+      const lines = response.split("\n").filter((line: string) => line.trim());
       const mainFeedback =
         lines
-          .find((line) => line.includes("FEEDBACK:"))
+          .find((line: string) => line.includes("FEEDBACK:"))
           ?.replace("FEEDBACK:", "")
           .trim() ||
         lines[0] ||
         "Keep practicing this word.";
       const improvementTip =
         lines
-          .find((line) => line.includes("TIP:"))
+          .find((line: string) => line.includes("TIP:"))
           ?.replace("TIP:", "")
           .trim() ||
         lines[1] ||
@@ -149,15 +168,19 @@ Phoneme Issues: ${
     } catch (error) {
       console.error("Error generating feedback:", error);
 
-      const fallbackFeedback =
-        language === "es"
-          ? `La palabra "${word.word}" necesita práctica. Puntuación: ${word.accuracy_score}%`
-          : `The word "${word.word}" needs practice. Score: ${word.accuracy_score}%`;
+      let fallbackFeedback: string;
+      let fallbackTip: string;
 
-      const fallbackTip =
-        language === "es"
-          ? "Practica pronunciando esta palabra lentamente."
-          : "Practice pronouncing this word slowly.";
+      if (language === "es") {
+        fallbackFeedback = `La palabra "${word.word}" necesita práctica. Puntuación: ${word.accuracy_score}%`;
+        fallbackTip = "Practica pronunciando esta palabra lentamente.";
+      } else if (language === "fr") {
+        fallbackFeedback = `Le mot "${word.word}" a besoin de pratique. Score : ${word.accuracy_score}%`;
+        fallbackTip = "Pratiquez la prononciation de ce mot lentement.";
+      } else {
+        fallbackFeedback = `The word "${word.word}" needs practice. Score: ${word.accuracy_score}%`;
+        fallbackTip = "Practice pronouncing this word slowly.";
+      }
 
       return {
         mainFeedback: fallbackFeedback,
@@ -171,24 +194,28 @@ Phoneme Issues: ${
    */
   static getErrorTypeAdvice(
     errorType: string,
-    language: "en" | "es" = "en"
+    language: SupportedLanguage = "en"
   ): string {
     const adviceMap: Record<string, Record<string, string>> = {
       substitution: {
         en: "Focus on the correct sound placement. Listen carefully to native speakers.",
         es: "Concéntrate en la colocación correcta del sonido. Escucha atentamente a hablantes nativos.",
+        fr: "Concentrez-vous sur le placement correct du son. Écoutez attentivement les locuteurs natifs.",
       },
       insertion: {
         en: "You added an extra sound. Try to be more precise with your pronunciation.",
         es: "Agregaste un sonido extra. Trata de ser más preciso con tu pronunciación.",
+        fr: "Vous avez ajouté un son supplémentaire. Essayez d'être plus précis avec votre prononciation.",
       },
       deletion: {
         en: "You missed a sound. Make sure to pronounce all parts of the word.",
         es: "Te faltó un sonido. Asegúrate de pronunciar todas las partes de la palabra.",
+        fr: "Vous avez manqué un son. Assurez-vous de prononcer toutes les parties du mot.",
       },
       unknown: {
         en: "Keep practicing and focus on clear articulation.",
         es: "Sigue practicando y concéntrate en una articulación clara.",
+        fr: "Continuez à pratiquer et concentrez-vous sur une articulation claire.",
       },
     };
 
@@ -208,7 +235,10 @@ Phoneme Issues: ${
   /**
    * Get score category
    */
-  static getScoreCategory(score: number, language: "en" | "es" = "en"): string {
+  static getScoreCategory(
+    score: number,
+    language: SupportedLanguage = "en"
+  ): string {
     const categories = {
       en: {
         excellent: "Excellent",
@@ -221,6 +251,12 @@ Phoneme Issues: ${
         good: "Bueno",
         fair: "Regular",
         needsWork: "Necesita Trabajo",
+      },
+      fr: {
+        excellent: "Excellent",
+        good: "Bon",
+        fair: "Acceptable",
+        needsWork: "Besoin de Travail",
       },
     };
 

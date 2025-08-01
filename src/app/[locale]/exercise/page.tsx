@@ -8,8 +8,13 @@ import { useState } from "react";
 import { ColoredPhrase } from "@/components/ColoredPhrase";
 import { SyllablePopup } from "@/components/SyllablePopup";
 import { playTTS } from "@/lib/playTTS";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "@/lib/translations";
 
 export default function ExercisePage() {
+  const { currentLanguage } = useLanguage();
+  const t = useTranslations(currentLanguage);
+
   // Helper to get phones and scores for a syllable from SpeechAce result
   function getPhonesAndScores(syllable: string, speechAceResult: any) {
     if (!speechAceResult?.text_score?.word_score_list)
@@ -86,13 +91,11 @@ export default function ExercisePage() {
         <main className="flex-1 pb-20 px-4">
           <div className="max-w-md mx-auto pt-8">
             <div className="text-center mb-8">
-              <h1 className="text-2xl mb-2">Pronunciation Exercise</h1>
-              <p className="text-muted-foreground mb-6">
-                Practice pronouncing the phrase below
-              </p>
+              <h1 className="text-2xl mb-2">{t.pronunciationExercise}</h1>
+              <p className="text-muted-foreground mb-6">{t.practiceSubtitle}</p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <h3 className="text-sm font-medium text-blue-900 mb-2">
-                  Practice Phrase:
+                  {t.practicePhrase}
                 </h3>
                 {/* Colored phrase if available, else plain */}
                 {syllableScores ? (
@@ -111,8 +114,7 @@ export default function ExercisePage() {
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                Press the microphone button and say the phrase above. Your
-                pronunciation will be analyzed automatically.
+                {t.practiceInstructions}
               </p>
             </div>
           </div>

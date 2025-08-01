@@ -1,5 +1,4 @@
-import { assemblyAI } from "./assemblyai";
-import { DeepSeekService } from "./deepseek";
+import { GeminiService } from "./gemini";
 import {
   SpeechAceService,
   SpeechAceResult,
@@ -16,8 +15,7 @@ export interface AudioSegment {
 }
 
 export interface AudioProcessorConfig {
-  assemblyAIKey: string;
-  togetherAIKey: string;
+  geminiApiKey: string;
   speechAceKey: string;
   speechAceUserId: string;
   silenceThreshold: number;
@@ -27,17 +25,16 @@ export interface AudioProcessorConfig {
   groundTruthMode: "transcription" | "fixed";
   fixedGroundTruth?: string;
   // Language configuration
-  language: "en" | "es";
+  language: "en" | "es" | "fr";
   speechAceDialect?: SpeechAceDialect;
-  deepSeekPrompt?: string;
   onSegmentProcessed?: (segment: AudioSegment) => void;
   onComplete?: (segments: AudioSegment[]) => void;
 }
 
 export class AudioProcessor {
-  private config: AudioProcessorConfig;
-  private deepSeek: DeepSeekService;
-  private speechAce: SpeechAceService;
+  private readonly config: AudioProcessorConfig;
+  private readonly gemini: GeminiService;
+  private readonly speechAce: SpeechAceService;
   private silenceDetector: SilenceDetector | null = null;
 
   private mediaRecorder: MediaRecorder | null = null;
@@ -47,14 +44,14 @@ export class AudioProcessor {
   private hasSpeechInCurrentSegment = false; // Track if current segment has speech
   private startTime: number = 0;
   private segmentStartTime: number = 0;
-  private segments: AudioSegment[] = [];
+  private readonly segments: AudioSegment[] = [];
 
   private maxSegmentTimeout: NodeJS.Timeout | null = null;
   private maxTotalTimeout: NodeJS.Timeout | null = null;
 
   constructor(config: AudioProcessorConfig) {
     this.config = config;
-    this.deepSeek = new DeepSeekService({ apiKey: config.togetherAIKey });
+    this.gemini = new GeminiService({ apiKey: config.geminiApiKey });
     this.speechAce = new SpeechAceService({
       apiKey: config.speechAceKey,
       userId: config.speechAceUserId,
@@ -242,15 +239,15 @@ export class AudioProcessor {
       let validatedTranscription = "";
 
       if (this.config.groundTruthMode === "fixed") {
-        // Use provided ground truth, skip AssemblyAI
+        // Use provided ground truth, skip Gemini
         groundTruth = this.config.fixedGroundTruth || "";
       } else {
-        // Use AssemblyAI to transcribe audio and use as ground truth
-        const transcriptionResult = await assemblyAI.transcribeAudio(
+        // Use Gemini to transcribe audio and use as ground truth
+        const transcriptionResult = await this.gemini.transcribeAudio(
           audioBlob,
           {
             language: this.config.language,
-            apiKey: this.config.assemblyAIKey,
+            apiKey: this.config.geminiApiKey,
           }
         );
         transcription = transcriptionResult.text;

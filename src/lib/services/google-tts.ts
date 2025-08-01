@@ -201,6 +201,12 @@ export class GoogleTTSService {
         "es-ES-Wavenet-D",
       ],
       "es-US": ["es-US-Wavenet-A", "es-US-Wavenet-B", "es-US-Wavenet-C"],
+      "fr-FR": [
+        "fr-FR-Wavenet-A",
+        "fr-FR-Wavenet-B",
+        "fr-FR-Wavenet-C",
+        "fr-FR-Wavenet-D",
+      ],
     };
 
     return voiceMap[languageCode] || voiceMap["en-US"];
@@ -231,6 +237,8 @@ export class GoogleTTSService {
     let voiceName: string;
     if (languageCode.startsWith("es")) {
       voiceName = "es-ES-Standard-G"; // Spanish voice
+    } else if (languageCode.startsWith("fr")) {
+      voiceName = "fr-FR-Standard-G"; // French voice
     } else {
       voiceName = "en-US-Standard-I"; // English voice
     }

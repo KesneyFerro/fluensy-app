@@ -5,15 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Volume2 } from "lucide-react";
 import MicrophoneButton from "./MicrophoneButton";
+import type { AudioSegment } from "../lib/services/audio-processor";
 
 export interface PhonemeTrainingProps {
-  targetWord: string;
-  targetPhoneme: string;
-  practicePhrase: string;
-  audioContent?: string;
-  onPracticeComplete: (userAudio: Blob, transcription: string) => void;
-  onSkip: () => void;
-  language: "en" | "es";
+  readonly targetWord: string;
+  readonly targetPhoneme: string;
+  readonly practicePhrase: string;
+  readonly audioContent?: string;
+  readonly onPracticeComplete: (userAudio: Blob, transcription: string) => void;
+  readonly onSkip: () => void;
+  readonly language: "en" | "es" | "fr";
 }
 
 export default function PhonemeTraining({
@@ -62,9 +63,12 @@ export default function PhonemeTraining({
     }
   };
 
-  const handleTranscriptionComplete = (text: string, audio?: Blob) => {
-    if (audio && text) {
-      onPracticeComplete(audio, text);
+  const handleTranscriptionComplete = (segments: AudioSegment[]) => {
+    if (segments.length > 0) {
+      const firstSegment = segments[0];
+      if (firstSegment.audioBlob && firstSegment.transcription) {
+        onPracticeComplete(firstSegment.audioBlob, firstSegment.transcription);
+      }
     }
   };
 
@@ -88,6 +92,17 @@ export default function PhonemeTraining({
       nowYouTry: "¡Ahora inténtalo tú! Haz clic en el micrófono para grabar:",
       skipPractice: "No, continuar conversación",
       tryAgain: "Intentar de Nuevo",
+    },
+    fr: {
+      title: "Pratique des Phonèmes",
+      noticed: `J'ai remarqué que vous avez eu des difficultés avec le mot "${targetWord}".`,
+      wouldLike: "Aimeriez-vous le pratiquer ?",
+      practiceWith: "Pratiquez avec cette phrase :",
+      listenFirst: "Écoutez d'abord l'exemple :",
+      nowYouTry:
+        "Maintenant à vous ! Cliquez sur le microphone pour enregistrer :",
+      skipPractice: "Non, continuer la conversation",
+      tryAgain: "Essayer Encore",
     },
   };
 

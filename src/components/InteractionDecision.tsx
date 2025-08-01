@@ -7,7 +7,7 @@ export interface InteractionDecisionProps {
   targetWord?: string;
   onChoosePhonemeTraining: () => void;
   onContinueConversation: () => void;
-  language: "en" | "es";
+  language: "en" | "es" | "fr";
 }
 
 export default function InteractionDecision({
@@ -32,6 +32,14 @@ export default function InteractionDecision({
       wouldLike: "¿Te gustaría practicarla?",
       yesTraining: "Sí, quiero practicar",
       noContinue: "No, continuar conversación",
+    },
+    fr: {
+      noticed: targetWord
+        ? `J'ai remarqué que vous avez eu des difficultés avec le mot "${targetWord}".`
+        : "J'ai remarqué quelques défis de prononciation.",
+      wouldLike: "Aimeriez-vous le pratiquer ?",
+      yesTraining: "Oui, je veux pratiquer",
+      noContinue: "Non, continuer la conversation",
     },
   };
 

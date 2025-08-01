@@ -13,6 +13,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "@/lib/translations";
 import { LocalUserProfileManager } from "@/lib/services/local-profile-manager";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,8 @@ type ProfileField = "name" | "username" | "email" | "dateOfBirth";
 
 export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
   const { user, userProfile, updateProfile, updateLocalProfile } = useAuth();
+  const { currentLanguage } = useLanguage();
+  const t = useTranslations(currentLanguage);
 
   // Initialize local profile manager for immediate data persistence
   const localProfileManager = useMemo(() => new LocalUserProfileManager(), []);
@@ -227,6 +231,18 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
     setPasswordMatchError(null);
     setPasswordStrengthError(null);
 
+    // Validate minimum length
+    if (passwordData.newPassword.length < 8) {
+      setPasswordStrengthError(t.passwordMinLength);
+      return;
+    }
+
+    // Validate confirm password is not empty
+    if (!passwordData.confirmPassword.trim()) {
+      setPasswordMatchError(t.pleaseConfirmPassword);
+      return;
+    }
+
     // Validate password strength
     const strengthError = validatePassword(passwordData.newPassword);
     if (strengthError) {
@@ -236,7 +252,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
 
     // Check if passwords match
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordMatchError("Passwords do not match");
+      setPasswordMatchError(t.passwordsDontMatchError);
       return;
     }
 
@@ -249,7 +265,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
   // === Password Change View ===
   if (showPasswordMenu) {
     return (
-      <div className="fixed inset-0 bg-white z-50 flex flex-col">
+      <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col">
         <div className="flex items-center p-4 border-b">
           <Button
             variant="ghost"
@@ -258,12 +274,12 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="ml-4 text-lg font-semibold">Change Password</h2>
+          <h2 className="ml-4 text-lg font-semibold">{t.changePassword}</h2>
         </div>
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-6 w-full mx-auto">
             <div className="space-y-2">
-              <Label htmlFor="oldPassword">Current Password</Label>
+              <Label htmlFor="oldPassword">{t.currentPassword}</Label>
               <PasswordInput
                 id="oldPassword"
                 value={passwordData.oldPassword}
@@ -274,7 +290,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword">{t.newPassword}</Label>
               <PasswordInput
                 id="newPassword"
                 value={passwordData.newPassword}
@@ -294,7 +310,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">{t.confirmNewPassword}</Label>
               <PasswordInput
                 id="confirmPassword"
                 value={passwordData.confirmPassword}
@@ -314,7 +330,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
               )}
             </div>
             <Button className="w-full mt-4" onClick={handlePasswordSave}>
-              Save Password
+              {t.savePassword}
             </Button>
           </div>
         </div>
@@ -324,18 +340,18 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
 
   // === Main Profile Edit View ===
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+    <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col">
       <div className="flex items-center p-4 border-b">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="ml-4 text-lg font-semibold">Edit Profile</h2>
+        <h2 className="ml-4 text-lg font-semibold">{t.editProfileTitle}</h2>
       </div>
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-6 w-full mx-auto text-left">
           {/* First Name */}
           <div className="space-y-2 relative">
-            <Label htmlFor="name">First Name</Label>
+            <Label htmlFor="name">{t.name}</Label>
             <div className="relative">
               <Input
                 id="name"
@@ -359,7 +375,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
                 <button
                   type="button"
                   data-field="name"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-green-600 cursor-pointer w-6 h-6 rounded hover:bg-green-50 flex items-center justify-center transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400 cursor-pointer w-6 h-6 rounded hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center justify-center transition-colors"
                   disabled={saving.name}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSaveField("name")}
@@ -372,7 +388,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
 
           {/* Username */}
           <div className="space-y-2 relative">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">{t.username}</Label>
             <div className="relative">
               <Input
                 id="username"
@@ -424,7 +440,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
           {/* Date of Birth */}
           <div className="space-y-2">
             <Label htmlFor="dateOfBirth" className="px-1">
-              Date of Birth
+              {t.dateOfBirth}
             </Label>
             <Popover
               open={editField === "dateOfBirth"}
@@ -528,13 +544,13 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
               </PopoverContent>
             </Popover>
             <div className="text-gray-500 text-xs mt-1">
-              Your date of birth is used to calculate your age.
+              {t.dateOfBirthNote}
             </div>
           </div>
 
           {/* Email */}
           <div className="space-y-2 relative">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t.email}</Label>
             <div className="relative">
               <Input
                 id="email"
@@ -572,7 +588,7 @@ export function EditProfileMenu({ onClose }: EditProfileMenuProps) {
 
           {/* Password */}
           <div className="space-y-2">
-            <Label>Password</Label>
+            <Label>{t.password}</Label>
             <button
               type="button"
               className="relative w-full cursor-pointer border rounded px-3 py-2 text-left"

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "@/lib/translations";
 import { PasswordInput } from "@/components/ui/password-input";
 
 export function LoginForm() {
@@ -15,7 +17,14 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { login, signInWithGoogle } = useAuth();
+  const { currentLanguage } = useLanguage();
+  const t = useTranslations(currentLanguage);
+
+  // Extract current locale from pathname
+  const pathParts = pathname?.split("/") || [];
+  const currentLocale = pathParts[1] || currentLanguage;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,9 +33,9 @@ export function LoginForm() {
 
     try {
       await login(email, password);
-      router.push("/");
+      router.push(`/${currentLocale}`);
     } catch (error) {
-      setError("Invalid email or password");
+      setError(t.invalidCredentials);
     } finally {
       setIsLoading(false);
     }
@@ -36,7 +45,7 @@ export function LoginForm() {
     setIsGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.push("/");
+      router.push(`/${currentLocale}`);
     } catch (error) {
       setError("Failed to sign in with Google");
     } finally {
@@ -47,14 +56,14 @@ export function LoginForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Login to your account</h1>
+        <h1 className="text-2xl font-bold">{t.loginToAccount}</h1>
         <p className="text-muted-foreground text-sm text-balance">
-          Enter your email below to login to your account
+          {t.enterEmailToLogin}
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t.email}</Label>
           <Input
             id="email"
             type="email"
@@ -66,13 +75,13 @@ export function LoginForm() {
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <a
-              href="#"
+            <Label htmlFor="password">{t.password}</Label>
+            <button
+              type="button"
               className="text-sm text-muted-foreground hover:underline"
             >
-              Forgot password?
-            </a>
+              {t.forgotPassword}
+            </button>
           </div>
           <PasswordInput
             id="password"
@@ -84,7 +93,7 @@ export function LoginForm() {
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Signing in..." : "Sign In"}
+          {isLoading ? t.loading : t.signIn}
         </Button>
       </form>
 
@@ -94,7 +103,7 @@ export function LoginForm() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or continue with
+            {t.orContinueWith}
           </span>
         </div>
       </div>
@@ -107,7 +116,7 @@ export function LoginForm() {
         className="w-full"
       >
         {isGoogleLoading ? (
-          "Signing in..."
+          t.loading
         ) : (
           <>
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -128,15 +137,18 @@ export function LoginForm() {
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            {t.signInWithGoogle}
           </>
         )}
       </Button>
 
       <div className="text-center text-sm">
-        Don&apos;t have an account?{" "}
-        <a href="/signup" className="underline underline-offset-4">
-          Sign up
+        {t.dontHaveAccount}{" "}
+        <a
+          href={`/${currentLocale}/signup`}
+          className="underline underline-offset-4"
+        >
+          {t.signUp}
         </a>
       </div>
     </div>

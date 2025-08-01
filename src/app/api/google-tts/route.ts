@@ -130,6 +130,14 @@ function getVoiceForLanguageAndMood(
       encouraging: "es-US-Wavenet-A",
       default: "es-US-Wavenet-A",
     },
+    "fr-FR": {
+      friendly: "fr-FR-Wavenet-A",
+      excited: "fr-FR-Wavenet-B",
+      calm: "fr-FR-Wavenet-A",
+      happy: "fr-FR-Wavenet-B",
+      encouraging: "fr-FR-Wavenet-A",
+      default: "fr-FR-Wavenet-A",
+    },
   };
 
   const languageVoices = voiceMap[languageCode] || voiceMap["en-US"];

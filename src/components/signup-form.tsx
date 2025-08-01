@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslations } from "@/lib/translations";
 import { PasswordInput } from "@/components/ui/password-input";
 
 export function SignupForm() {
@@ -16,24 +18,46 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { signup, signInWithGoogle } = useAuth();
+  const { currentLanguage } = useLanguage();
+  const t = useTranslations(currentLanguage);
+
+  // Extract current locale from pathname
+  const pathParts = pathname?.split("/") || [];
+  const currentLocale = pathParts[1] || currentLanguage;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
+    // Validate password length
+    if (password.length < 8) {
+      setError(t.passwordMinLength);
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate confirm password is not empty
+    if (!confirmPassword.trim()) {
+      setError(t.pleaseConfirmPassword);
+      setIsLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t.passwordsDontMatch);
       setIsLoading(false);
       return;
     }
 
     try {
       await signup(email, password);
-      router.push("/complete-profile");
+      router.push(`/${currentLocale}/complete-profile`);
     } catch (error) {
-      setError("Failed to create account");
+      console.error("Signup error:", error);
+      setError(t.failedToCreateAccount);
     } finally {
       setIsLoading(false);
     }
@@ -43,8 +67,9 @@ export function SignupForm() {
     setIsGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.push("/");
+      router.push(`/${currentLocale}`);
     } catch (error) {
+      console.error("Google signin error:", error);
       setError("Failed to sign in with Google");
     } finally {
       setIsGoogleLoading(false);
@@ -54,14 +79,14 @@ export function SignupForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Create an account</h1>
+        <h1 className="text-2xl font-bold">{t.createAccount}</h1>
         <p className="text-muted-foreground text-sm text-balance">
-          Enter your information to create your account
+          {t.enterInfoToCreateAccount}
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t.email}</Label>
           <Input
             id="email"
             type="email"
@@ -72,7 +97,7 @@ export function SignupForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t.password}</Label>
           <PasswordInput
             id="password"
             value={password}
@@ -82,7 +107,7 @@ export function SignupForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
           <PasswordInput
             id="confirmPassword"
             value={confirmPassword}
@@ -93,7 +118,7 @@ export function SignupForm() {
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Creating account..." : "Create Account"}
+          {isLoading ? t.creatingAccount : t.createAccount}
         </Button>
       </form>
 
@@ -103,7 +128,7 @@ export function SignupForm() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or continue with
+            {t.orContinueWith}
           </span>
         </div>
       </div>
@@ -137,15 +162,18 @@ export function SignupForm() {
                 fill="#EA4335"
               />
             </svg>
-            Sign up with Google
+            {t.signUpWithGoogle}
           </>
         )}
       </Button>
 
       <div className="text-center text-sm">
-        Already have an account?{" "}
-        <a href="/login" className="underline underline-offset-4">
-          Sign in
+        {t.alreadyHaveAccount}{" "}
+        <a
+          href={`/${currentLocale}/login`}
+          className="underline underline-offset-4"
+        >
+          {t.signIn}
         </a>
       </div>
     </div>
