@@ -10,31 +10,38 @@ import { SyllablePopup } from "@/components/SyllablePopup";
 import { playTTS } from "@/lib/playTTS";
 
 export default function ExercisePage() {
-// Helper to get phones and scores for a syllable from SpeechAce result
-function getPhonesAndScores(syllable: string, speechAceResult: any) {
-  if (!speechAceResult?.text_score?.word_score_list) return { phones: [], scores: [] };
-  for (const word of speechAceResult.text_score.word_score_list) {
-    if (!word.syllable_score_list) continue;
-    for (const syll of word.syllable_score_list) {
-      if (syll.letters.toLowerCase() === syllable.toLowerCase()) {
-        // Find phones for this syllable in phone_score_list
-        const phones: string[] = [];
-        const scores: string[] = [];
-        if (word.phone_score_list) {
-          for (const phone of word.phone_score_list) {
-            if (phone.word_extent && phone.word_extent.length === 2) {
-              // Just push all phones for now (could refine by extent)
-              phones.push(phone.phone);
-              scores.push(phone.quality_score >= 85 ? "Good" : phone.quality_score >= 60 ? "OK" : "Needs work");
+  // Helper to get phones and scores for a syllable from SpeechAce result
+  function getPhonesAndScores(syllable: string, speechAceResult: any) {
+    if (!speechAceResult?.text_score?.word_score_list)
+      return { phones: [], scores: [] };
+    for (const word of speechAceResult.text_score.word_score_list) {
+      if (!word.syllable_score_list) continue;
+      for (const syll of word.syllable_score_list) {
+        if (syll.letters.toLowerCase() === syllable.toLowerCase()) {
+          // Find phones for this syllable in phone_score_list
+          const phones: string[] = [];
+          const scores: string[] = [];
+          if (word.phone_score_list) {
+            for (const phone of word.phone_score_list) {
+              if (phone.word_extent && phone.word_extent.length === 2) {
+                // Just push all phones for now (could refine by extent)
+                phones.push(phone.phone);
+                scores.push(
+                  phone.quality_score >= 85
+                    ? "Good"
+                    : phone.quality_score >= 60
+                    ? "OK"
+                    : "Needs work"
+                );
+              }
             }
           }
+          return { phones, scores };
         }
-        return { phones, scores };
       }
     }
+    return { phones: [], scores: [] };
   }
-  return { phones: [], scores: [] };
-}
   // No transcription or AssemblyAI logic needed
   const [syllableScores, setSyllableScores] = useState<any[] | null>(null);
   const [speechAceResult, setSpeechAceResult] = useState<any | null>(null);
@@ -119,39 +126,49 @@ function getPhonesAndScores(syllable: string, speechAceResult: any) {
           maxRecordingSeconds={15}
         />
         <BottomNavigation />
-      {/* Syllable popup modal */}
-      <SyllablePopup
-        open={popupOpen}
-        onClose={() => setPopupOpen(false)}
-        syllable={popupSyllable}
-        phones={getPhonesAndScores(popupSyllable, speechAceResult).phones}
-        scores={getPhonesAndScores(popupSyllable, speechAceResult).scores}
-        onPlayNormal={async () => {
-          // Find the parent word for the syllable
-          let word = popupSyllable;
-          if (speechAceResult?.text_score?.word_score_list) {
-            for (const w of speechAceResult.text_score.word_score_list) {
-              if (w.syllable_score_list?.some((s: any) => s.letters.toLowerCase() === popupSyllable.toLowerCase())) {
-                word = w.word;
-                break;
+        {/* Syllable popup modal */}
+        <SyllablePopup
+          open={popupOpen}
+          onClose={() => setPopupOpen(false)}
+          syllable={popupSyllable}
+          phones={getPhonesAndScores(popupSyllable, speechAceResult).phones}
+          scores={getPhonesAndScores(popupSyllable, speechAceResult).scores}
+          onPlayNormal={async () => {
+            // Find the parent word for the syllable
+            let word = popupSyllable;
+            if (speechAceResult?.text_score?.word_score_list) {
+              for (const w of speechAceResult.text_score.word_score_list) {
+                if (
+                  w.syllable_score_list?.some(
+                    (s: any) =>
+                      s.letters.toLowerCase() === popupSyllable.toLowerCase()
+                  )
+                ) {
+                  word = w.word;
+                  break;
+                }
               }
             }
-          }
-          await playTTS(word, false);
-        }}
-        onPlaySlow={async () => {
-          let word = popupSyllable;
-          if (speechAceResult?.text_score?.word_score_list) {
-            for (const w of speechAceResult.text_score.word_score_list) {
-              if (w.syllable_score_list?.some((s: any) => s.letters.toLowerCase() === popupSyllable.toLowerCase())) {
-                word = w.word;
-                break;
+            await playTTS(word, false);
+          }}
+          onPlaySlow={async () => {
+            let word = popupSyllable;
+            if (speechAceResult?.text_score?.word_score_list) {
+              for (const w of speechAceResult.text_score.word_score_list) {
+                if (
+                  w.syllable_score_list?.some(
+                    (s: any) =>
+                      s.letters.toLowerCase() === popupSyllable.toLowerCase()
+                  )
+                ) {
+                  word = w.word;
+                  break;
+                }
               }
             }
-          }
-          await playTTS(word, true);
-        }}
-      />
+            await playTTS(word, true);
+          }}
+        />
       </div>
     </RouteProtection>
   );

@@ -246,10 +246,13 @@ export class AudioProcessor {
         groundTruth = this.config.fixedGroundTruth || "";
       } else {
         // Use AssemblyAI to transcribe audio and use as ground truth
-        const transcriptionResult = await assemblyAI.transcribeAudio(audioBlob, {
-          language: this.config.language,
-          apiKey: this.config.assemblyAIKey,
-        });
+        const transcriptionResult = await assemblyAI.transcribeAudio(
+          audioBlob,
+          {
+            language: this.config.language,
+            apiKey: this.config.assemblyAIKey,
+          }
+        );
         transcription = transcriptionResult.text;
         validatedTranscription = transcriptionResult.text;
         groundTruth = transcriptionResult.text;

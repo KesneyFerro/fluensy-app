@@ -35,8 +35,6 @@ export default function MicrophoneButton({
     try {
       onTranscriptionStart();
 
-
-
       // Support both transcription and fixed modes
       const config: any = {
         speechAceKey: process.env.NEXT_PUBLIC_SPEECHACE_API_KEY || "",

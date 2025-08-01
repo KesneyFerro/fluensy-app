@@ -31,7 +31,13 @@ export const ColoredPhrase: React.FC<ColoredPhraseProps> = ({
       const syll = syllableScores[syllIdx];
       const part = phrase.substr(phrasePos, syll.letters.length);
       // Case-insensitive match, but always render the original phrase substring
-      if (part.length === syll.letters.length && part.localeCompare(syll.letters, undefined, { sensitivity: 'accent' }) === 0 || part.toLowerCase() === syll.letters.toLowerCase()) {
+      if (
+        (part.length === syll.letters.length &&
+          part.localeCompare(syll.letters, undefined, {
+            sensitivity: "accent",
+          }) === 0) ||
+        part.toLowerCase() === syll.letters.toLowerCase()
+      ) {
         const color =
           syll.quality_score >= thresholds.good
             ? "text-green-600"
@@ -54,13 +60,15 @@ export const ColoredPhrase: React.FC<ColoredPhraseProps> = ({
     }
     if (!matched) {
       // Group consecutive spaces together for a single span
-      if (phrase[phrasePos] === ' ') {
+      if (phrase[phrasePos] === " ") {
         let spaceStart = phrasePos;
-        while (phrase[phrasePos] === ' ' && phrasePos < phrase.length) {
+        while (phrase[phrasePos] === " " && phrasePos < phrase.length) {
           phrasePos++;
         }
         colored.push(
-          <span key={`space-${spaceStart}`}>{phrase.slice(spaceStart, phrasePos)}</span>
+          <span key={`space-${spaceStart}`}>
+            {phrase.slice(spaceStart, phrasePos)}
+          </span>
         );
       } else {
         colored.push(

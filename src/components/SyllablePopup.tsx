@@ -1,4 +1,3 @@
-
 import { LuTurtle } from "react-icons/lu";
 
 interface SyllablePopupProps {
@@ -32,10 +31,18 @@ export const SyllablePopup: React.FC<SyllablePopupProps> = ({
           ×
         </button>
         <div className="flex gap-4 mb-4 justify-center">
-          <button onClick={onPlayNormal} className="rounded-full border-2 border-green-700 text-green-700 w-12 h-12 flex items-center justify-center hover:bg-green-50">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+          <button
+            onClick={onPlayNormal}
+            className="rounded-full border-2 border-green-700 text-green-700 w-12 h-12 flex items-center justify-center hover:bg-green-50"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M8 5v14l11-7z" fill="currentColor" />
+            </svg>
           </button>
-          <button onClick={onPlaySlow} className="rounded-full border-2 border-blue-700 text-blue-700 w-12 h-12 flex items-center justify-center hover:bg-blue-50">
+          <button
+            onClick={onPlaySlow}
+            className="rounded-full border-2 border-blue-700 text-blue-700 w-12 h-12 flex items-center justify-center hover:bg-blue-50"
+          >
             <LuTurtle size={28} />
           </button>
         </div>
@@ -51,7 +58,12 @@ export const SyllablePopup: React.FC<SyllablePopupProps> = ({
             {phones.map((phone, i) => (
               <tr key={i} className="text-lg">
                 {i === 0 && (
-                  <td rowSpan={phones.length} className="font-bold align-middle">{syllable}</td>
+                  <td
+                    rowSpan={phones.length}
+                    className="font-bold align-middle"
+                  >
+                    {syllable}
+                  </td>
                 )}
                 <td>{phone}</td>
                 <td>{scores[i]}</td>
