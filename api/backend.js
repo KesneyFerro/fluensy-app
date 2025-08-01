@@ -2,13 +2,9 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const path = require("path");
 
 // Create Express app
 const app = express();
-
-// Load environment variables
-require("dotenv").config({ path: path.join(__dirname, "../backend/.env") });
 
 // Middleware
 app.use(
@@ -28,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 let cachedConnection = null;
 
 async function connectToDatabase() {
-  if (cachedConnection) {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
     return cachedConnection;
   }
 
@@ -39,8 +35,7 @@ async function connectToDatabase() {
 
     console.log("🔌 Connecting to MongoDB...");
     cachedConnection = await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      bufferCommands: false,
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
@@ -79,7 +74,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// API Routes
+// API Routes - Note: the /users prefix is handled by the rewrite
 app.use("/users", userRoutes);
 
 // Error handling middleware
@@ -99,14 +94,23 @@ app.use((req, res) => {
   res.status(404).json({
     error: "Route not found",
     path: req.path,
+    method: req.method,
   });
 });
 
 // Export the Express app as a serverless function
 module.exports = async (req, res) => {
-  // Connect to database before handling request
-  await connectToDatabase();
+  try {
+    // Connect to database before handling request
+    await connectToDatabase();
 
-  // Handle the request with Express
-  return app(req, res);
+    // Handle the request with Express
+    return app(req, res);
+  } catch (error) {
+    console.error("Serverless function error:", error);
+    return res.status(500).json({
+      error: "Database connection failed",
+      message: error.message,
+    });
+  }
 };

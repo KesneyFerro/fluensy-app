@@ -11,8 +11,6 @@ import {
   deleteUser,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -319,12 +317,36 @@ export function AuthProvider({
 
   const signInWithGoogle = async () => {
     if (!auth) throw new Error("Auth not initialized");
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
+    
+    try {
+      const { GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
+      const provider = new GoogleAuthProvider();
+      
+      // Add additional OAuth scopes if needed
+      provider.addScope('email');
+      provider.addScope('profile');
+      
+      console.log("Attempting Google sign in...");
+      const result = await signInWithPopup(auth, provider);
+      console.log("Google sign in successful:", result.user.email);
 
-    // Check if user needs to complete profile
-    if (!result.user.displayName) {
-      router.push("/complete-profile");
+      // Check if user needs to complete profile
+      if (!result.user.displayName) {
+        router.push("/complete-profile");
+      }
+    } catch (error: any) {
+      console.error("Google sign in error:", error);
+      
+      // Handle specific Firebase Auth errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign in was cancelled');
+      } else if (error.code === 'auth/popup-blocked') {
+        throw new Error('Popup was blocked by browser');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for OAuth');
+      } else {
+        throw new Error('Failed to sign in with Google');
+      }
     }
   };
 

@@ -1,9 +1,7 @@
-import { initializeApp, FirebaseApp } from "firebase/app";
+import { initializeApp } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
-  Auth,
-  GoogleAuthProvider as GoogleAuthProviderType,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -38,30 +36,43 @@ console.log("Firebase Config Check:", {
     firebaseConfig.measurementId !== "placeholder-measurement-id",
 });
 
-// Only initialize Firebase if we have a real API key
-let app: FirebaseApp | undefined;
-let auth: Auth | null = null;
-let googleProvider: GoogleAuthProviderType | null = null;
+// Initialize Firebase configuration
+const initializeFirebase = () => {
+  try {
+    // Check if we have the minimum required config
+    const hasRequiredConfig = 
+      process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+      process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== "placeholder-api-key" &&
+      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN &&
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
-try {
-  if (
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== "placeholder-api-key"
-  ) {
-    console.log("Attempting to initialize Firebase...");
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    googleProvider = new GoogleAuthProvider();
-    console.log("Firebase initialized successfully!");
-  } else {
-    console.warn(
-      "Firebase initialization skipped:",
-      "API Key missing or using placeholder value"
-    );
+    if (hasRequiredConfig) {
+      console.log("Attempting to initialize Firebase...");
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const googleProvider = new GoogleAuthProvider();
+      
+      // Configure Google provider
+      googleProvider.addScope('email');
+      googleProvider.addScope('profile');
+      
+      console.log("Firebase initialized successfully!");
+      return { app, auth, googleProvider };
+    } else {
+      console.warn(
+        "Firebase initialization skipped:",
+        "Required environment variables missing"
+      );
+      return { app: undefined, auth: null, googleProvider: null };
+    }
+  } catch (error) {
+    console.error("Firebase initialization error:", error);
+    return { app: undefined, auth: null, googleProvider: null };
   }
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-}
+};
 
+const { app, auth, googleProvider } = initializeFirebase();
+
+// Export the initialized instances
 export { auth, googleProvider };
 export default app;
