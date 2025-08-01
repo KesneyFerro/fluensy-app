@@ -1,22 +1,45 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { LocalUserProfileManager } from "@/lib/services/local-profile-manager";
+
+// Flag SVG components
+const USFlag = () => (
+  <svg width="24" height="16" viewBox="0 0 24 16" className="rounded">
+    <rect width="24" height="16" fill="#B22234" />
+    <rect width="24" height="1.23" y="1.23" fill="#FFFFFF" />
+    <rect width="24" height="1.23" y="3.69" fill="#FFFFFF" />
+    <rect width="24" height="1.23" y="6.15" fill="#FFFFFF" />
+    <rect width="24" height="1.23" y="8.62" fill="#FFFFFF" />
+    <rect width="24" height="1.23" y="11.08" fill="#FFFFFF" />
+    <rect width="24" height="1.23" y="13.54" fill="#FFFFFF" />
+    <rect width="9.6" height="8.8" fill="#3C3B6E" />
+  </svg>
+);
+
+const MXFlag = () => (
+  <svg width="24" height="16" viewBox="0 0 24 16" className="rounded">
+    <rect width="8" height="16" fill="#006847" />
+    <rect x="8" width="8" height="16" fill="#FFFFFF" />
+    <rect x="16" width="8" height="16" fill="#CE1126" />
+  </svg>
+);
 
 const LANGUAGE_OPTIONS = [
   {
     code: "en-US",
     displayName: "English (US)",
-    flag: "🇺🇸",
+    flag: <USFlag />,
     dialect: "American English",
   },
   {
     code: "es-MX",
     displayName: "Spanish (Mexico)",
-    flag: "🇲🇽",
+    flag: <MXFlag />,
     dialect: "Mexican Spanish",
   },
 ];
@@ -31,14 +54,28 @@ export function LanguageSettings({
   const [selectedLanguage, setSelectedLanguage] = useState(currentLanguage);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Initialize local profile manager for fallback data
+  const localProfileManager = useMemo(() => new LocalUserProfileManager(), []);
+
+  // Get profile data with local fallback
+  const getProfileData = () => {
+    if (userProfile) return userProfile;
+    if (user?.uid) {
+      return localProfileManager.getProfile(user.uid);
+    }
+    return null;
+  };
+
+  const profileData = getProfileData();
+
   useEffect(() => {
-    // Set the current language from user profile or context
-    if (userProfile?.language) {
-      setSelectedLanguage(userProfile.language as "en" | "es");
+    // Set the current language from profile data or context
+    if (profileData?.language) {
+      setSelectedLanguage(profileData.language as "en" | "es");
     } else {
       setSelectedLanguage(currentLanguage);
     }
-  }, [userProfile, currentLanguage]);
+  }, [profileData, currentLanguage]);
 
   const handleLanguageSelect = (languageCode: string) => {
     // Convert detailed language codes to simple codes for LanguageContext
@@ -57,13 +94,13 @@ export function LanguageSettings({
       // Update in context (for immediate UI changes)
       setLanguage(selectedLanguage);
 
-      // Update in MongoDB via the user profile
-      if (userProfile) {
+      // Update in MongoDB via the user profile using local fallback data
+      if (profileData) {
         await updateProfile({
-          name: userProfile.name,
-          username: userProfile.username,
-          email: userProfile.email,
-          dateOfBirth: userProfile.dateOfBirth || "",
+          name: profileData.name,
+          username: profileData.username,
+          email: profileData.email,
+          dateOfBirth: profileData.dateOfBirth || "",
           language: selectedLanguage,
         });
       }
@@ -124,7 +161,9 @@ export function LanguageSettings({
                     }
                   `}
                 >
-                  <div className="text-2xl">{language.flag}</div>
+                  <div className="flex items-center justify-center w-8 h-6">
+                    {language.flag}
+                  </div>
                   <div className="flex-1">
                     <div className="font-medium text-sm">
                       {language.displayName}

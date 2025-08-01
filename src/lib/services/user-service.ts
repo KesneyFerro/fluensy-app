@@ -41,6 +41,9 @@ export interface UserProfile {
   createdAt?: Date;
   updatedAt?: Date;
   lastLoginAt?: Date;
+  // Local storage management fields
+  _localTimestamp?: number;
+  _locallyModified?: boolean;
 }
 
 class UserService {

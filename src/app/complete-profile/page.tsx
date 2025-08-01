@@ -26,10 +26,12 @@ import { GalleryVerticalEnd } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const profileSchema = z.object({
-  displayName: z.string().min(2, "Name must be at least 2 characters"),
+  displayName: z.string().min(2, "First name must be at least 2 characters"),
   username: z
     .string()
     .min(3, "Username must be at least 3 characters")
+    .max(15, "Username must be less than 15 characters")
+    .regex(/^\S+$/, "Username cannot contain spaces")
     .regex(
       /^\w+$/,
       "Username can only contain letters, numbers, and underscores"
@@ -109,7 +111,7 @@ export default function CompleteProfilePage() {
                   Complete Your Profile
                 </CardTitle>
                 <CardDescription className="text-center">
-                  Please provide your name and birth date to complete your
+                  Please provide your first name and birth date to complete your
                   account setup
                 </CardDescription>
               </CardHeader>
@@ -124,11 +126,11 @@ export default function CompleteProfilePage() {
                       name="displayName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel>First Name</FormLabel>
                           <FormControl>
                             <Input
                               type="text"
-                              placeholder="Enter your full name"
+                              placeholder="Enter your first name"
                               {...field}
                               disabled={isLoading}
                             />

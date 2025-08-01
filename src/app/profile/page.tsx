@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Settings, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,38 +10,146 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { SettingsMenu } from "@/components/settings-menu";
+import { LocalUserProfileManager } from "@/lib/services/local-profile-manager";
+
+const calculateAge = (dateOfBirth: string): number => {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age--;
+  }
+
+  return age;
+};
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, userProfile, loading, refreshUserProfile, updateLocalProfile } =
+    useAuth();
   const [showSettings, setShowSettings] = useState(false);
   const router = useRouter();
-  const [userInfo] = useState({
-    name: user?.displayName || user?.email || "User",
+
+  // Initialize local profile manager for fallback data
+  const localProfileManager = useMemo(() => new LocalUserProfileManager(), []);
+
+  // Force refresh from local storage when component mounts or user changes
+  useEffect(() => {
+    if (user?.uid && !userProfile) {
+      // If we have a user but no userProfile, try to get it from local storage
+      const localProfile = localProfileManager.getProfile(user.uid);
+      if (localProfile) {
+        // We have local data but AuthContext doesn't, let's refresh
+        refreshUserProfile().catch((error) => {
+          console.log(
+            "Failed to refresh from server, using local data:",
+            error
+          );
+        });
+      }
+    }
+  }, [user?.uid, userProfile, localProfileManager, refreshUserProfile]);
+
+  // Add a listener for local profile changes to trigger re-render
+  const [localUpdateTrigger, setLocalUpdateTrigger] = useState(0);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setLocalUpdateTrigger((prev) => prev + 1);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Enhanced profile data that includes latest local changes
+  const currentProfileData = useMemo(() => {
+    // Always get the freshest local data
+    if (user?.uid) {
+      const freshLocalProfile = localProfileManager.getProfile(user.uid);
+      if (freshLocalProfile) return freshLocalProfile;
+    }
+
+    // Fallback to context profile
+    if (userProfile) return userProfile;
+
+    return null;
+  }, [userProfile, user?.uid, localProfileManager, localUpdateTrigger]);
+
+  const userInfo = {
+    name: currentProfileData?.name || user?.displayName || "User",
+    username: currentProfileData?.username?.trim()
+      ? currentProfileData.username
+      : user?.email?.split("@")[0] ||
+        "user" + Math.random().toString(36).substring(2, 6),
+    age: currentProfileData?.dateOfBirth
+      ? calculateAge(currentProfileData.dateOfBirth)
+      : null,
+    email: currentProfileData?.email || user?.email || "",
     level: 4,
     progress: 58,
     profileImage: "/placeholder.svg?height=120&width=120&text=Profile",
-  });
+  };
+
+  // Show loading state while fetching user data
+  if (loading && !currentProfileData) {
+    return (
+      <div
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 flex items-center justify-center"
+        style={{ backgroundColor: "#e0eafc" }}
+      >
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Determine data source for user feedback
+  const isUsingLocalData = !userProfile && currentProfileData && user?.uid;
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-100 to-white">
+      <div
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100"
+        style={{ backgroundColor: "#e0eafc" }}
+      >
+        {/* Show local data indicator if applicable */}
+        {isUsingLocalData && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mx-4 mt-2 rounded">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  📱 Showing locally saved data. Will sync when connection is
+                  restored.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full bg-white/80 hover:bg-white"
+            className="rounded-full bg-white/90 hover:bg-white shadow-sm border"
             onClick={() => setShowSettings(true)}
           >
-            <Settings className="h-5 w-5 text-gray-600" />
+            <Settings className="h-5 w-5 text-gray-700" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full bg-white/80 hover:bg-white"
+            className="rounded-full bg-white/90 hover:bg-white shadow-sm border"
             onClick={() => router.push("/")}
           >
-            <X className="h-5 w-5 text-gray-600" />
+            <X className="h-5 w-5 text-gray-700" />
           </Button>
         </div>
 
@@ -54,7 +162,7 @@ export default function ProfilePage() {
                   src={userInfo.profileImage || "/placeholder.svg"}
                   alt="Profile"
                 />
-                <AvatarFallback className="text-2xl bg-gradient-to-br from-pink-200 to-purple-200">
+                <AvatarFallback className="text-2xl bg-gradient-to-br from-gray-200 to-blue-200">
                   <User className="w-12 h-12" />
                 </AvatarFallback>
               </Avatar>
@@ -63,14 +171,19 @@ export default function ProfilePage() {
               <h1 className="text-3xl font-bold text-gray-900">
                 {userInfo.name}
               </h1>
-              <p className="text-gray-500 text-sm">8 years old</p>
+              <p className="text-gray-600 text-base">@{userInfo.username}</p>
+              {userInfo.age && (
+                <p className="text-gray-500 text-sm">
+                  {userInfo.age} years old
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* Content Card */}
         <div className="px-6">
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg rounded-3xl">
+          <Card className="bg-white/95 backdrop-blur-sm border border-gray-200/50 shadow-xl rounded-3xl">
             <CardContent className="p-6 space-y-6">
               <div>
                 <p className="text-gray-600 text-center leading-relaxed">
@@ -79,7 +192,7 @@ export default function ProfilePage() {
                 </p>
               </div>
 
-              <hr className="border-gray-200" />
+              <hr className="border-gray-300" />
 
               {/* Level Progress */}
               <div className="flex items-center gap-4">

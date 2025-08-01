@@ -40,11 +40,6 @@ const userSchema = new mongoose.Schema(
       required: false,
     },
 
-    birthDate: {
-      type: Date,
-      required: false,
-    },
-
     // User preferences and settings
     language: {
       type: String,

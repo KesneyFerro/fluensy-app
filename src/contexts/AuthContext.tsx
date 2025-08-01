@@ -5,7 +5,6 @@ import {
   onAuthStateChanged,
   signOut,
   User,
-  Auth,
   updateProfile as firebaseUpdateProfile,
   updateEmail,
   updatePassword,
@@ -18,6 +17,7 @@ import {
 import { auth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { userService, UserProfile } from "@/lib/services/user-service";
+import { LocalUserProfileManager } from "@/lib/services/local-profile-manager";
 
 // Debug: Log initial auth status
 console.log("AuthContext Initial Auth Status:", {
@@ -43,7 +43,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  updateProfile: (data: UpdateProfileData) => Promise<void>;
+  updateProfile: (data: UpdateProfileData) => Promise<UserProfile | void>;
+  updateLocalProfile: (updates: Partial<UserProfile>) => void;
   deleteAccount: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 }
@@ -57,6 +58,7 @@ const AuthContext = createContext<AuthContextType>({
   signup: async () => {},
   signInWithGoogle: async () => {},
   updateProfile: async () => {},
+  updateLocalProfile: () => {},
   deleteAccount: async () => {},
   refreshUserProfile: async () => {},
 });
@@ -79,6 +81,9 @@ export function AuthProvider({
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Initialize local profile manager
+  const localProfileManager = useMemo(() => new LocalUserProfileManager(), []);
+
   // Function to refresh user profile from MongoDB
   const refreshUserProfile = async () => {
     if (!user?.uid) return;
@@ -86,10 +91,32 @@ export function AuthProvider({
     try {
       const profile = await userService.getUserProfile(user.uid);
       setUserProfile(profile);
+      // Use local profile manager for caching
+      localProfileManager.updateProfile(user.uid, profile, false);
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      setUserProfile(null);
+
+      // Try to load from local storage if network fails
+      const cachedProfile = localProfileManager.getProfile(user.uid);
+      if (cachedProfile) {
+        setUserProfile(cachedProfile);
+      } else {
+        setUserProfile(null);
+      }
     }
+  };
+
+  // Function to update local profile state
+  const updateLocalProfile = (updates: Partial<UserProfile>) => {
+    if (!user?.uid) return;
+
+    setUserProfile((prevProfile) => {
+      if (!prevProfile) return null;
+      const updatedProfile = { ...prevProfile, ...updates };
+      // Also update the local storage
+      localProfileManager.updateProfile(user.uid, updatedProfile, false);
+      return updatedProfile;
+    });
   };
 
   useEffect(() => {
@@ -108,6 +135,14 @@ export function AuthProvider({
 
       if (firebaseUser) {
         try {
+          // Load cached profile first for immediate display
+          const cachedProfile = localProfileManager.getProfile(
+            firebaseUser.uid
+          );
+          if (cachedProfile) {
+            setUserProfile(cachedProfile);
+          }
+
           // Get the ID token and set it as a cookie
           const token = await firebaseUser.getIdToken();
           console.log("Got ID token, setting cookie...");
@@ -117,10 +152,22 @@ export function AuthProvider({
           console.log("Syncing user with MongoDB...");
           const mongoProfile = await userService.syncFirebaseUser(firebaseUser);
           setUserProfile(mongoProfile);
+          // Update local cache
+          localProfileManager.updateProfile(
+            firebaseUser.uid,
+            mongoProfile,
+            false
+          );
           console.log("User synced with MongoDB:", mongoProfile);
         } catch (error) {
           console.error("Error syncing user with MongoDB:", error);
-          setUserProfile(null);
+          // Keep cached profile if sync fails
+          const cachedProfile = localProfileManager.getProfile(
+            firebaseUser.uid
+          );
+          if (!cachedProfile) {
+            setUserProfile(null);
+          }
         }
       } else {
         console.log("No user, removing auth cookie...");
@@ -128,6 +175,8 @@ export function AuthProvider({
         document.cookie =
           "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         setUserProfile(null);
+        // Clear all cached profiles
+        localProfileManager.clearAllProfiles();
       }
 
       setLoading(false);
@@ -228,14 +277,20 @@ export function AuthProvider({
         updateData
       );
 
+      // Update with the actual server response and cache locally
       setUserProfile(updatedProfile);
+      localProfileManager.updateProfile(
+        auth.currentUser.uid,
+        updatedProfile,
+        false
+      );
+
       console.log(
         "Profile updated in both Firebase and MongoDB:",
         updatedProfile
       );
 
-      // Note: Phone number updates typically require SMS verification
-      // and additional Firebase configuration
+      return updatedProfile;
     } catch (error) {
       console.error("Error updating profile:", error);
       throw error;
@@ -283,6 +338,7 @@ export function AuthProvider({
       signup,
       signInWithGoogle,
       updateProfile,
+      updateLocalProfile,
       deleteAccount,
       refreshUserProfile,
     }),

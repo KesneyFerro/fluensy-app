@@ -124,10 +124,26 @@ router.put("/users/:firebaseUID", async (req, res) => {
       updateData.dateOfBirth = new Date(updateData.dateOfBirth);
     }
 
-    const user = await User.findOneAndUpdate({ firebaseUID }, updateData, {
-      new: true,
-      runValidators: true,
+    // Remove empty string fields to avoid validation errors on required fields
+    Object.keys(updateData).forEach((key) => {
+      if (
+        updateData[key] === "" ||
+        updateData[key] === null ||
+        updateData[key] === undefined
+      ) {
+        delete updateData[key];
+      }
     });
+
+    // Use $set to only update the provided fields
+    const user = await User.findOneAndUpdate(
+      { firebaseUID },
+      { $set: updateData },
+      {
+        new: true,
+        runValidators: false, // Disable validators for partial updates
+      }
+    );
 
     console.log("📝 Update result:", {
       userFound: !!user,
