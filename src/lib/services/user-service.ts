@@ -2,7 +2,10 @@
 // This service handles communication between your Next.js frontend and the MongoDB backend
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  (typeof window !== "undefined"
+    ? "/api/backend"
+    : "http://localhost:5000/api");
 
 console.log("🔧 UserService Configuration:", {
   API_BASE_URL,
