@@ -18,6 +18,8 @@ import InteractionFlowManager, {
   InteractionDecision as InteractionDecisionType,
 } from "@/lib/services/interaction-flow-manager";
 import { SpeechAceResult } from "@/lib/services/speechace";
+import { PhonemeEvaluationService } from "@/lib/services/phoneme-evaluation";
+import { usePhonemeInitialization } from "@/hooks/usePhonemeEvaluation";
 
 type AppState =
   | "waiting_for_penguin_click"
@@ -31,6 +33,9 @@ type AppState =
   | "phoneme_feedback";
 
 export default function HomePage() {
+  // Initialize phoneme evaluation system for the user
+  usePhonemeInitialization();
+
   // Guard to prevent duplicate TTS calls per session
   const transcriptionHandledRef = useRef(false);
   const { user } = useAuth();
@@ -174,13 +179,6 @@ export default function HomePage() {
   /**
    * 2. User Input Flow - Handle completed transcription with AudioProcessor results
    */
-  // Timeout for robust TTS triggering
-  const ttsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTranscriptionArgsRef = useRef<{
-    text: string;
-    audio?: Blob;
-  } | null>(null);
-
   // Update: Accept segments array from MicrophoneButton
   const handleTranscriptionComplete = async (
     segments: import("@/lib/services/audio-processor").AudioSegment[]
@@ -211,6 +209,29 @@ export default function HomePage() {
       .map((s) => s.speechAceResult)
       .filter((r): r is SpeechAceResult => Boolean(r));
     setAggregatedSpeechAceData(mergedSpeechAce);
+
+    // Process phoneme evaluation if user is authenticated and we have SpeechAce results
+    if (user && mergedSpeechAce.length > 0) {
+      try {
+        const phonemeEvaluationService = new PhonemeEvaluationService();
+        const evaluationResult =
+          phonemeEvaluationService.extractPhonemeScores(mergedSpeechAce);
+
+        // Update user's phoneme evaluation
+        await PhonemeEvaluationService.updateUserPhonemeEvaluation(
+          user.uid,
+          evaluationResult.phonemeScores
+        );
+
+        console.log("Phoneme evaluation updated:", {
+          phonemeCount: Object.keys(evaluationResult.phonemeScores).length,
+          overallPerformance: evaluationResult.overallPerformance,
+        });
+      } catch (error) {
+        console.error("Error updating phoneme evaluation:", error);
+        // Don't fail the entire process if phoneme evaluation fails
+      }
+    }
 
     if (!flowManagerRef.current || !mergedText.trim()) {
       setAppState("waiting_for_user");

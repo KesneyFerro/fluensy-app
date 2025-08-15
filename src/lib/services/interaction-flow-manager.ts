@@ -2,6 +2,7 @@ import { GeminiService } from "./gemini";
 import GoogleTTSService from "./google-tts";
 import { SpeechAceService, SpeechAceResult } from "./speechace";
 import { GradingSystem } from "./grading-system";
+import { PhonemeEvaluationService } from "./phoneme-evaluation";
 
 type SupportedLanguage = "en" | "es" | "fr";
 
@@ -437,20 +438,34 @@ export class InteractionFlowManager {
   }
 
   /**
-   * Generate a practice phrase containing the target word
+   * Generate a practice phrase containing the target word with phoneme focus
    */
   private generatePracticePhrase(
     word: string,
     language: SupportedLanguage
   ): string {
+    // Analyze the word using CMU Dictionary
+    const wordAnalysis = PhonemeEvaluationService.analyzeWordDifficulty(word);
+
+    // Generate context-aware practice phrases based on word difficulty
     const templates = {
-      en: [
-        `Let's practice the word "${word}". Say it clearly: ${word}.`,
-        `Focus on pronouncing "${word}" correctly. Try saying: ${word}.`,
-        `Let's work on "${word}". Repeat after me: ${word}.`,
-        `Practice time! Say the word "${word}" slowly and clearly.`,
-        `Let's improve your pronunciation of "${word}". Say: ${word}.`,
-      ],
+      en: {
+        easy: [
+          `Let's practice the word "${word}". Say it clearly: ${word}.`,
+          `Focus on "${word}". Try saying: ${word}.`,
+          `Say the word "${word}" slowly.`,
+        ],
+        medium: [
+          `Let's work on "${word}". This word has ${wordAnalysis.phonemes.length} sounds. Say: ${word}.`,
+          `Focus on pronouncing "${word}" correctly. Break it down: ${word}.`,
+          `Practice the word "${word}". Take your time: ${word}.`,
+        ],
+        hard: [
+          `Let's practice the challenging word "${word}". It has ${wordAnalysis.phonemes.length} sounds including some tricky ones. Say: ${word}.`,
+          `This is a complex word: "${word}". Focus on each sound carefully: ${word}.`,
+          `Let's master "${word}". It contains difficult sounds, so pronounce it slowly: ${word}.`,
+        ],
+      },
       es: [
         `Practiquemos la palabra "${word}". Dila claramente: ${word}.`,
         `Enfócate en pronunciar "${word}" correctamente. Intenta decir: ${word}.`,
@@ -467,8 +482,13 @@ export class InteractionFlowManager {
       ],
     };
 
-    const phrases = templates[language];
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    if (language === "en") {
+      const phrases = templates.en[wordAnalysis.difficulty];
+      return phrases[Math.floor(Math.random() * phrases.length)];
+    } else {
+      const phrases = templates[language];
+      return phrases[Math.floor(Math.random() * phrases.length)];
+    }
   }
 
   /**

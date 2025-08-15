@@ -317,4 +317,96 @@ router.get("/users/check-username/:username", async (req, res) => {
   }
 });
 
+// Initialize phonemes for a user
+router.post("/phonemes/initialize", async (req, res) => {
+  try {
+    const { userId, phonemes } = req.body;
+
+    if (!userId || !phonemes || !Array.isArray(phonemes)) {
+      return res.status(400).json({
+        error: "userId and phonemes array are required",
+      });
+    }
+
+    const user = await User.findOne({ firebaseUID: userId });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.initializePhonemes(phonemes);
+    await user.save();
+
+    res.json({
+      message: "Phonemes initialized successfully",
+      phonemeCount: phonemes.length,
+    });
+  } catch (error) {
+    console.error("Error initializing phonemes:", error);
+    res.status(500).json({
+      error: "Failed to initialize phonemes",
+      details: error.message,
+    });
+  }
+});
+
+// Update phoneme evaluation
+router.post("/phonemes/evaluate", async (req, res) => {
+  try {
+    const { userId, phonemeScores } = req.body;
+
+    if (!userId || !phonemeScores) {
+      return res.status(400).json({
+        error: "userId and phonemeScores are required",
+      });
+    }
+
+    const user = await User.findOne({ firebaseUID: userId });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const updatedStats = user.updatePhonemeEvaluation(phonemeScores);
+    await user.save();
+
+    res.json({
+      message: "Phoneme evaluation updated successfully",
+      updatedPhonemes: Object.keys(phonemeScores),
+      stats: Object.fromEntries(updatedStats),
+    });
+  } catch (error) {
+    console.error("Error updating phoneme evaluation:", error);
+    res.status(500).json({
+      error: "Failed to update phoneme evaluation",
+      details: error.message,
+    });
+  }
+});
+
+// Get user phoneme performance
+router.get("/users/:firebaseUID/phonemes/performance", async (req, res) => {
+  try {
+    const { firebaseUID } = req.params;
+
+    const user = await User.findOne({ firebaseUID });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const performance = user.getPhonemePerformanceSummary();
+
+    res.json({
+      performance,
+      phonemeStats: user.phonemeStats
+        ? Object.fromEntries(user.phonemeStats)
+        : {},
+    });
+  } catch (error) {
+    console.error("Error fetching phoneme performance:", error);
+    res.status(500).json({
+      error: "Failed to fetch phoneme performance",
+      details: error.message,
+    });
+  }
+});
+
 module.exports = router;

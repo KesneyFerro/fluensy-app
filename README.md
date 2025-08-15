@@ -22,6 +22,14 @@ Fluensy is an interactive language learning application that uses advanced AI to
 16. [🛠️ Development](#️-development)
 17. [🚢 Deployment](#-deployment)
 18. [🔍 Troubleshooting](#-troubleshooting)
+19. [🔒 Security Considerations](#-security-considerations)
+20. [📊 Analytics & Monitoring](#-analytics--monitoring)
+21. [🧩 Extending Fluensy](#-extending-fluensy)
+22. [📝 Contributing](#-contributing)
+23. [📜 License](#-license)
+24. [🗣️ Phoneme Evaluation System](#️-phoneme-evaluation-system)
+25. [🌐 Internationalization](#-internationalization)
+26. [💾 MongoDB Integration](#-mongodb-integration)
 
 ---
 
@@ -961,8 +969,429 @@ npm run test:audio
 
 For support, feature requests, or contributions, please visit our [GitHub repository](https://github.com/yourusername/fluensy-app).
 
+## 🔒 Security Considerations
+
+Fluensy prioritizes user data security and system integrity through comprehensive security measures.
+
+### Authentication & Authorization
+
+- **Firebase Authentication**: Secure user authentication with email/password and social login options
+- **JWT Token Handling**: Secure token storage and validation
+- **Role-Based Access Control**: Different permission levels for users and administrators
+- **Session Management**: Secure session handling with appropriate timeout settings
+- **Account Recovery**: Secure password reset mechanism
+
+### Data Security
+
+- **Data Encryption**: All sensitive data is encrypted in transit (HTTPS/TLS) and at rest
+- **Secure Storage**: User data and recordings are stored with appropriate access controls
+- **Audio Data Handling**: Temporary storage of voice recordings with automatic purging
+- **Privacy Controls**: Users can delete their data and voice recordings at any time
+- **Data Minimization**: Only collecting data necessary for the application's functionality
+
+### API Security
+
+- **Rate Limiting**: Protection against brute force and DDoS attacks
+- **Input Validation**: All user inputs are validated and sanitized
+- **CORS Configuration**: Proper Cross-Origin Resource Sharing settings
+- **API Keys Management**: Secure handling of third-party API credentials
+- **Request Authentication**: All API requests are authenticated and authorized
+
+### Third-Party Services
+
+- **Service Provider Security**: Evaluation of security practices of integrated services
+- **Data Processing Agreements**: Compliance with data protection regulations
+- **Limited Permissions**: Minimal access permissions for third-party integrations
+- **Regular Audits**: Periodic review of third-party service security posture
+
+### Compliance
+
+- **GDPR Compliance**: Data protection measures aligned with European regulations
+- **COPPA Considerations**: Special protections for users under 13 years of age
+- **Accessibility Standards**: WCAG 2.1 compliance for accessibility
+- **Privacy Policy**: Clear and transparent privacy policy
+- **Terms of Service**: Comprehensive terms of service agreement
+
+### Development Practices
+
+- **Secure Coding Guidelines**: Following OWASP top 10 recommendations
+- **Code Reviews**: Security-focused code review process
+- **Dependency Scanning**: Regular vulnerability scanning of dependencies
+- **Security Testing**: Penetration testing and security assessments
+- **Secret Management**: Secure handling of credentials and secrets
+
+### Reporting Security Issues
+
+If you discover a security vulnerability within Fluensy, please send an email to security@fluensy.com. All security vulnerabilities will be promptly addressed.
+
+## 📊 Analytics & Monitoring
+
+Fluensy implements comprehensive analytics and monitoring to track application performance, user engagement, and system health.
+
+### User Analytics
+
+#### Session Metrics
+- **Active Users**: Daily, weekly, and monthly active user tracking
+- **Session Duration**: Average time spent in learning sessions
+- **Feature Usage**: Tracking which features are most utilized
+- **User Pathways**: Common navigation patterns through the application
+- **Conversion Rates**: User progression from signup to active learning
+
+#### Learning Analytics
+- **Exercise Completion**: Tracking completed exercises and lessons
+- **Pronunciation Improvement**: Measuring progress in pronunciation accuracy over time
+- **Phoneme Mastery**: Individual phoneme proficiency tracking
+- **Learning Efficiency**: Time spent vs. improvement metrics
+- **Exercise Difficulty Analysis**: Success rates at different difficulty levels
+
+### Performance Monitoring
+
+#### Application Performance
+- **Page Load Times**: Tracking initial load and navigation speeds
+- **API Response Times**: Monitoring backend API performance
+- **Resource Utilization**: CPU, memory, and network usage
+- **Error Rates**: Tracking application errors and exceptions
+- **Browser Compatibility**: Performance across different browsers and devices
+
+#### AI Service Performance
+- **Speech Recognition Accuracy**: AssemblyAI transcription quality metrics
+- **Speech Analysis Latency**: SpeechAce response time tracking
+- **TTS Generation Speed**: Google TTS performance metrics
+- **AI Response Quality**: User satisfaction with Gemini AI responses
+- **AI Service Availability**: Uptime monitoring for third-party AI services
+
+### Implementation
+
+- **Application Monitoring**: Vercel Analytics for Next.js performance
+- **Error Tracking**: Sentry for real-time error monitoring
+- **User Analytics**: Google Analytics 4 for user behavior tracking
+- **Custom Events**: Custom event tracking for learning-specific metrics
+- **Performance Testing**: Lighthouse CI for automated performance assessments
+
+## 🧩 Extending Fluensy
+
+Fluensy is designed with extensibility in mind, following a modular architecture that allows for easy expansion of its capabilities.
+
+### Extension Points
+
+#### 1. Adding New Languages
+
+To add support for a new language:
+
+1. Create a new translation file in `messages/[lang].json`
+2. Update the language selector component in `src/components/language-settings.tsx`
+3. Add language-specific phoneme mappings in the phoneme evaluation system
+4. Extend the TTS configuration to support the new language in `src/lib/services/google-tts.ts`
+5. Test the language with SpeechAce to ensure pronunciation analysis support
+
+#### 2. Integrating New AI Services
+
+To integrate an alternative or additional AI service:
+
+1. Create a new service file in `src/lib/services/`
+2. Implement the required interfaces to maintain compatibility
+3. Update the service factory in the relevant manager class
+4. Add appropriate configuration in environment variables
+5. Update the API routes if necessary to support the new service
+
+#### 3. Creating Custom Exercise Types
+
+To add a new exercise type:
+
+1. Define the exercise type interface in `src/lib/types/`
+2. Create exercise generation logic in `src/lib/services/exercise-generator.ts`
+3. Implement a new exercise component in `src/components/exercises/`
+4. Add the exercise type to the exercise selection UI
+5. Update the progress tracking to support the new exercise type
+
+#### 4. Enhancing the Phoneme Evaluation System
+
+To extend the phoneme evaluation capabilities:
+
+1. Add new phoneme statistics metrics in the User model
+2. Extend the evaluation algorithm in `src/lib/services/phoneme-evaluation.ts`
+3. Create additional visualization components for the new metrics
+4. Update the user profile page to display the new phoneme insights
+5. Add API endpoints to support the extended functionality
+
+#### 5. Customizing the UI
+
+To customize the user interface:
+
+1. Modify the theme configuration in `tailwind.config.js`
+2. Create or update components in `src/components/ui/`
+3. Customize the layout components for specific pages
+4. Update animation and transition effects in the relevant components
+5. Ensure responsive design across different device sizes
+
+### Best Practices for Extensions
+
+- Keep extensions modular and well-documented
+- Follow the existing naming conventions and file structure
+- Create clear interfaces for your extension points
+- Use dependency injection to maintain loose coupling
+- Ensure all UI extensions meet WCAG 2.1 AA standards
+- Test with screen readers and keyboard navigation
+- Create unit tests for new service implementations
+
+## 📝 Contributing
+
+Thank you for your interest in contributing to Fluensy! We welcome contributions from everyone.
+
+### How to Contribute
+
+There are many ways to contribute to Fluensy:
+
+- Reporting bugs
+- Suggesting enhancements
+- Writing or improving documentation
+- Fixing bugs
+- Implementing features
+- Helping with code reviews
+- Answering questions in issues
+
+### Getting Started
+
+1. **Fork the repository** on GitHub
+2. **Clone your fork** to your local machine
+3. **Create a new branch** for your contribution
+4. **Make your changes** following our coding standards
+5. **Write or update tests** as necessary
+6. **Run tests** to make sure everything passes
+7. **Commit your changes** with clear, descriptive commit messages
+8. **Push to your fork** and submit a pull request
+
+### Development Environment Setup
+
+```bash
+# Clone your fork
+git clone https://github.com/your-username/fluensy-app.git
+cd fluensy-app
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+
+# Start the development server
+npm run dev
+```
+
+For full contribution guidelines, please see our [detailed contribution guide](./CONTRIBUTING.md).
+
+## 📜 License
+
+Fluensy is licensed under the MIT License.
+
+```
+MIT License
+
+Copyright (c) 2024 Fluensy Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## 🗣️ Phoneme Evaluation System
+
+Fluensy features a sophisticated phoneme evaluation system that tracks user progress on individual speech sounds and provides personalized feedback.
+
+### Overview
+
+The phoneme evaluation system analyzes user pronunciation at the phoneme level, tracking progress for each sound and providing detailed insights for improvement. The system uses the CMU Pronouncing Dictionary to map words to their constituent phonemes using the ARPAbet notation system.
+
+### Core Features Implemented
+
+#### **Enhanced User Model** (`backend/models/User.js`)
+
+- Added `phonemeStats` field to track detailed phoneme performance
+- Each phoneme tracks:
+  - **Points**: Dynamic scoring based on performance
+  - **Count**: Number of practice attempts
+  - **Streak**: Consecutive good/bad performance tracking
+  - **Flexibility**: Age-adjusted multiplier (10x for new accounts, decreasing over time)
+  - **Learning Rate**: Calculated from streak, flexibility, and performance
+  - **Average Score**: Running average of all attempts
+  - **Last Updated**: Timestamp tracking
+
+#### **Phoneme Evaluation Service** (`src/lib/services/phoneme-evaluation.ts`)
+
+- **CMU Dictionary Integration**: Extracts all unique phonemes from the dictionary
+- **IPA to ARPAbet Mapping**: Converts SpeechAce phonemes to CMU Dictionary format
+- **Performance Analysis**: Processes SpeechAce results and calculates phoneme scores
+- **Word Difficulty Analysis**: Categorizes words as easy/medium/hard based on phoneme complexity
+
+#### **Backend API Routes** (`backend/routes/users.js`)
+
+- `POST /phonemes/initialize`: Initialize all phonemes for a new user
+- `POST /phonemes/evaluate`: Update phoneme scores after speech analysis
+- `GET /users/:id/phonemes/performance`: Get user's phoneme performance summary
+
+#### **Frontend Integration**
+
+- **Automatic Phoneme Initialization**: New users get all phonemes initialized
+- **Real-time Evaluation**: After each SpeechAce analysis, phoneme scores are updated
+- **Phoneme Progress Dashboard**: Shows all phonemes with detailed statistics
+- **Performance Categories**: Filter by All/Strong/Weak phonemes
+- **Visual Progress Tracking**: Color-coded points, streaks, and scores
+
+### Key Features
+
+- **Personalized Phoneme Tracking**: Each user has a unique phoneme statistics profile that evolves as they practice
+- **Performance Analytics**: Visual reports showing strong and weak phonemes with progress metrics
+- **Adaptive Learning Algorithm**: Points and streaks system with learning rate adjustment based on user performance
+- **ARPAbet/IPA Mapping**: Seamless conversion between different phonetic notation systems
+- **Word Difficulty Analysis**: Classification of words based on phoneme complexity
+
+### Usage
+
+```javascript
+// Initialize user phoneme stats
+const uniquePhonemes = PhonemeEvaluationService.getUniquePhonemes();
+await PhonemeEvaluationService.initializeUserPhonemes(userId, uniquePhonemes);
+
+// Update phoneme stats after speech analysis
+const phonemeScores = PhonemeEvaluationService.extractPhonemeScores(speechAceResult, "word");
+await PhonemeEvaluationService.updateUserPhonemeEvaluation(userId, phonemeScores);
+
+// Get performance summary
+const summary = await PhonemeEvaluationService.getUserPhonemePerformance(userId);
+```
+
+## 🌐 Internationalization
+
+Fluensy supports multiple languages through a comprehensive internationalization (i18n) strategy.
+
+### Next.js Built-in i18n (Recommended)
+
+#### Why This Approach:
+
+- Built into Next.js 13+
+- SEO-friendly with proper URL routing (`/en/`, `/es/`, `/fr/`)
+- Server-side rendering support
+- Automatic locale detection
+
+#### Implementation Steps:
+
+1. **Install Dependencies**
+
+```bash
+npm install next-intl
+```
+
+2. **Update next.config.js**
+
+```javascript
+const createNextIntlPlugin = require("next-intl/plugin");
+const withNextIntl = createNextIntlPlugin();
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+module.exports = withNextIntl(nextConfig);
+```
+
+3. **Create Translation Files**
+
+```
+messages/
+├── en.json
+├── es.json
+└── fr.json
+```
+
+4. **Set up i18n Middleware**
+
+Create a middleware file to handle locale detection and routing.
+
+5. **Create Localized Routes**
+
+Structure your pages to support dynamic locale routing.
+
+### Translation Management
+
+- **Translation Keys**: Use hierarchical structure for better organization
+- **Variables**: Support for dynamic content within translations
+- **Formatting**: Date, number, and currency formatting based on locale
+- **Fallbacks**: Default language fallback for missing translations
+
+## 💾 MongoDB Integration
+
+Fluensy integrates with MongoDB Atlas for data persistence, providing a robust database solution for user data storage.
+
+### Testing the Complete Integration
+
+#### Current Status
+
+- ✅ **Backend Running**: http://localhost:5000
+- ✅ **Frontend Running**: http://localhost:3001
+- ✅ **MongoDB Connected**: fluensy.t3hyga1.mongodb.net
+- ✅ **API Endpoints Working**: All user management endpoints tested
+
+#### Test Scenarios
+
+1. **New User Signup**
+   - User created in Firebase Authentication
+   - User profile automatically created in MongoDB
+   - Both systems are synced
+
+2. **Existing User Login**
+   - Firebase authenticates the user
+   - MongoDB profile is automatically loaded
+   - User data is synced between both systems
+
+3. **Profile Editing**
+   - Changes saved to Firebase (display name, email, password)
+   - Changes saved to MongoDB (all profile data)
+   - Both systems stay in sync
+
+4. **Account Deletion**
+   - User deleted from MongoDB first
+   - Then deleted from Firebase
+   - All data is completely removed
+
+#### What's Stored in MongoDB
+
+- **Basic Profile**: Name, username, email, date of birth
+- **Learning Progress**: Session count, time spent, streaks
+- **Exercise Data**: Completed exercises with scores
+- **Phoneme Progress**: Individual sound training progress
+- **User Preferences**: Language settings, profile picture
+
+#### What's Still in Firebase
+
+- **Authentication**: Email/password, login sessions
+- **Security**: ID tokens, authentication state
+- **Google Sign-in**: OAuth tokens and social login data
+
+### Data Flow
+
+```
+User Action → Firebase Auth → AuthContext → UserService → MongoDB Atlas
+                     ↓                          ↓
+              Frontend State ←  Sync Data  ←  Backend API
+```

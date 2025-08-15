@@ -1,4 +1,6 @@
-// Vercel serverless function wrapper for the Express backend
+// Next.js App Router API Route
+import { NextRequest, NextResponse } from "next/server";
+
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -21,7 +23,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB Connection (with connection caching for serverless)
-let cachedConnection = null;
+let cachedConnection: any = null;
 
 async function connectToDatabase() {
   if (cachedConnection && mongoose.connection.readyState === 1) {
@@ -50,10 +52,10 @@ async function connectToDatabase() {
 }
 
 // Import routes
-const userRoutes = require("../backend/routes/users");
+const userRoutes = require("../../../../backend/routes/users");
 
 // Routes
-app.get("/", (req, res) => {
+app.get("/", (req: any, res: any) => {
   res.json({
     message: "🚀 Fluensy API is running on Vercel!",
     version: "1.0.0",
@@ -65,7 +67,7 @@ app.get("/", (req, res) => {
 });
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get("/health", (req: any, res: any) => {
   res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
@@ -74,11 +76,11 @@ app.get("/health", (req, res) => {
   });
 });
 
-// API Routes - Note: the /users prefix is handled by the rewrite
+// API Routes
 app.use("/users", userRoutes);
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err: any, req: any, res: any, next: any) => {
   console.error("❌ Error:", err.stack);
   res.status(500).json({
     error: "Something went wrong!",
@@ -90,7 +92,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: any, res: any) => {
   res.status(404).json({
     error: "Route not found",
     path: req.path,
@@ -98,19 +100,46 @@ app.use((req, res) => {
   });
 });
 
-// Export the Express app as a serverless function
-module.exports = async (req, res) => {
+// Handler function for Next.js App Router
+async function handler(req: NextRequest) {
   try {
     // Connect to database before handling request
     await connectToDatabase();
 
-    // Handle the request with Express
-    return app(req, res);
-  } catch (error) {
-    console.error("Serverless function error:", error);
-    return res.status(500).json({
-      error: "Database connection failed",
-      message: error.message,
+    // Convert Next.js request to Express-compatible format
+    const { pathname, searchParams } = new URL(req.url);
+    const path = pathname.replace("/api/backend", "") || "/";
+
+    return new Promise((resolve) => {
+      const mockReq = {
+        method: req.method,
+        url:
+          path + (searchParams.toString() ? "?" + searchParams.toString() : ""),
+        headers: Object.fromEntries(req.headers.entries()),
+        body: req.body,
+      };
+
+      const mockRes = {
+        status: (code: number) => ({
+          json: (data: any) =>
+            resolve(NextResponse.json(data, { status: code })),
+        }),
+        json: (data: any) => resolve(NextResponse.json(data)),
+        send: (data: any) => resolve(new NextResponse(data)),
+      };
+
+      app(mockReq, mockRes);
     });
+  } catch (error: any) {
+    console.error("Serverless function error:", error);
+    return NextResponse.json(
+      {
+        error: "Database connection failed",
+        message: error.message,
+      },
+      { status: 500 }
+    );
   }
-};
+}
+
+export { handler as GET, handler as POST, handler as PUT, handler as DELETE };

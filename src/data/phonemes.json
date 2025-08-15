@@ -1,0 +1,204 @@
+{
+  "phonemes": [
+    {
+      "phoneme": "/æ/",
+      "examples": ["cat", "bat", "hat"],
+      "description": "Short 'a' sound"
+    },
+    {
+      "phoneme": "/ɑ/",
+      "examples": ["father", "hot", "got"],
+      "description": "Open back unrounded vowel"
+    },
+    {
+      "phoneme": "/ʌ/",
+      "examples": ["but", "cut", "fun"],
+      "description": "Short 'u' sound"
+    },
+    {
+      "phoneme": "/ɔ/",
+      "examples": ["thought", "caught", "law"],
+      "description": "Open-mid back rounded vowel"
+    },
+    {
+      "phoneme": "/ə/",
+      "examples": ["about", "sofa", "comma"],
+      "description": "Schwa - unstressed vowel"
+    },
+    {
+      "phoneme": "/i/",
+      "examples": ["see", "tree", "me"],
+      "description": "Long 'e' sound"
+    },
+    {
+      "phoneme": "/ɪ/",
+      "examples": ["sit", "bit", "hit"],
+      "description": "Short 'i' sound"
+    },
+    {
+      "phoneme": "/u/",
+      "examples": ["too", "blue", "through"],
+      "description": "Long 'oo' sound"
+    },
+    {
+      "phoneme": "/ʊ/",
+      "examples": ["book", "look", "good"],
+      "description": "Short 'oo' sound"
+    },
+    {
+      "phoneme": "/e/",
+      "examples": ["bed", "red", "head"],
+      "description": "Short 'e' sound"
+    },
+    {
+      "phoneme": "/o/",
+      "examples": ["go", "show", "boat"],
+      "description": "Long 'o' sound"
+    },
+    {
+      "phoneme": "/p/",
+      "examples": ["pat", "cup", "happy"],
+      "description": "Voiceless bilabial plosive"
+    },
+    {
+      "phoneme": "/b/",
+      "examples": ["bat", "cab", "about"],
+      "description": "Voiced bilabial plosive"
+    },
+    {
+      "phoneme": "/t/",
+      "examples": ["top", "cat", "butter"],
+      "description": "Voiceless alveolar plosive"
+    },
+    {
+      "phoneme": "/d/",
+      "examples": ["dog", "bad", "ladder"],
+      "description": "Voiced alveolar plosive"
+    },
+    {
+      "phoneme": "/k/",
+      "examples": ["cat", "back", "school"],
+      "description": "Voiceless velar plosive"
+    },
+    {
+      "phoneme": "/g/",
+      "examples": ["go", "bag", "bigger"],
+      "description": "Voiced velar plosive"
+    },
+    {
+      "phoneme": "/f/",
+      "examples": ["fat", "leaf", "phone"],
+      "description": "Voiceless labiodental fricative"
+    },
+    {
+      "phoneme": "/v/",
+      "examples": ["van", "love", "have"],
+      "description": "Voiced labiodental fricative"
+    },
+    {
+      "phoneme": "/θ/",
+      "examples": ["think", "bath", "three"],
+      "description": "Voiceless dental fricative - 'th' sound"
+    },
+    {
+      "phoneme": "/ð/",
+      "examples": ["this", "bathe", "the"],
+      "description": "Voiced dental fricative - 'th' sound"
+    },
+    {
+      "phoneme": "/s/",
+      "examples": ["sat", "pass", "city"],
+      "description": "Voiceless alveolar fricative"
+    },
+    {
+      "phoneme": "/z/",
+      "examples": ["zip", "buzz", "has"],
+      "description": "Voiced alveolar fricative"
+    },
+    {
+      "phoneme": "/ʃ/",
+      "examples": ["shop", "wash", "nation"],
+      "description": "Voiceless postalveolar fricative - 'sh' sound"
+    },
+    {
+      "phoneme": "/ʒ/",
+      "examples": ["measure", "vision", "garage"],
+      "description": "Voiced postalveolar fricative"
+    },
+    {
+      "phoneme": "/h/",
+      "examples": ["hat", "house", "ahead"],
+      "description": "Voiceless glottal fricative"
+    },
+    {
+      "phoneme": "/tʃ/",
+      "examples": ["chair", "watch", "nature"],
+      "description": "Voiceless postalveolar affricate - 'ch' sound"
+    },
+    {
+      "phoneme": "/dʒ/",
+      "examples": ["jump", "bridge", "age"],
+      "description": "Voiced postalveolar affricate - 'j' sound"
+    },
+    {
+      "phoneme": "/m/",
+      "examples": ["man", "come", "thumb"],
+      "description": "Voiced bilabial nasal"
+    },
+    {
+      "phoneme": "/n/",
+      "examples": ["no", "sun", "funny"],
+      "description": "Voiced alveolar nasal"
+    },
+    {
+      "phoneme": "/ŋ/",
+      "examples": ["sing", "bank", "finger"],
+      "description": "Voiced velar nasal - 'ng' sound"
+    },
+    {
+      "phoneme": "/l/",
+      "examples": ["let", "ball", "play"],
+      "description": "Voiced alveolar lateral approximant"
+    },
+    {
+      "phoneme": "/r/",
+      "examples": ["run", "car", "try"],
+      "description": "Voiced postalveolar approximant"
+    },
+    {
+      "phoneme": "/j/",
+      "examples": ["yes", "few", "music"],
+      "description": "Voiced palatal approximant - 'y' sound"
+    },
+    {
+      "phoneme": "/w/",
+      "examples": ["wet", "away", "twin"],
+      "description": "Voiced labio-velar approximant"
+    },
+    {
+      "phoneme": "/aɪ/",
+      "examples": ["my", "high", "time"],
+      "description": "Diphthong - 'ai' sound"
+    },
+    {
+      "phoneme": "/aʊ/",
+      "examples": ["now", "house", "about"],
+      "description": "Diphthong - 'ow' sound"
+    },
+    {
+      "phoneme": "/ɔɪ/",
+      "examples": ["boy", "coin", "voice"],
+      "description": "Diphthong - 'oy' sound"
+    },
+    {
+      "phoneme": "/eɪ/",
+      "examples": ["say", "make", "day"],
+      "description": "Diphthong - 'ay' sound"
+    },
+    {
+      "phoneme": "/oʊ/",
+      "examples": ["go", "home", "know"],
+      "description": "Diphthong - 'oh' sound"
+    }
+  ]
+}

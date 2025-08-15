@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useState, useMemo, useEffect } from "react";
-import { Settings, X, User } from "lucide-react";
+import { Settings, X, User, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,8 @@ import { SettingsMenu } from "@/components/settings-menu";
 import { LocalUserProfileManager } from "@/lib/services/local-profile-manager";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslations } from "@/lib/translations";
+import { usePhonemePerformance } from "@/hooks/usePhonemeEvaluation";
+import PhonemeProgressDashboard from "@/components/PhonemeProgressDashboard";
 
 const calculateAge = (dateOfBirth: string): number => {
   const today = new Date();
@@ -33,9 +35,12 @@ const calculateAge = (dateOfBirth: string): number => {
 export default function ProfilePage() {
   const { user, userProfile, loading, refreshUserProfile } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
+  const [showPhonemeReport, setShowPhonemeReport] = useState(false);
   const router = useRouter();
   const { currentLanguage } = useLanguage();
   const t = useTranslations(currentLanguage);
+  const { getPerformance } = usePhonemePerformance();
+  const [phonemePerformance, setPhonemePerformance] = useState<any>(null);
 
   // Initialize local profile manager for fallback data
   const localProfileManager = useMemo(() => new LocalUserProfileManager(), []);
@@ -56,6 +61,22 @@ export default function ProfilePage() {
       }
     }
   }, [user?.uid, userProfile, localProfileManager, refreshUserProfile]);
+
+  // Fetch phoneme performance data only once when user changes
+  useEffect(() => {
+    const fetchPhonemePerformance = async () => {
+      if (user) {
+        try {
+          const performance = await getPerformance();
+          setPhonemePerformance(performance);
+        } catch (error) {
+          console.error("Error fetching phoneme performance:", error);
+        }
+      }
+    };
+
+    fetchPhonemePerformance();
+  }, [user?.uid]); // Only depend on user ID, not the function
 
   // Add a listener for local profile changes to trigger re-render
   const [localUpdateTrigger, setLocalUpdateTrigger] = useState(0);
@@ -228,6 +249,14 @@ export default function ProfilePage() {
                     {t.masterPercentTarget}
                   </p>
                 </div>
+                <Button
+                  onClick={() => setShowPhonemeReport(true)}
+                  variant="outline"
+                  className="flex items-center gap-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Report
+                </Button>
               </div>
 
               <Button className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-2xl py-4 text-lg font-medium">
@@ -298,6 +327,21 @@ export default function ProfilePage() {
       </div>
 
       {showSettings && <SettingsMenu onClose={() => setShowSettings(false)} />}
+
+      {/* Phoneme Report Modal */}
+      {showPhonemeReport && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowPhonemeReport(false)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <PhonemeProgressDashboard />
+          </div>
+        </div>
+      )}
     </>
   );
 }
